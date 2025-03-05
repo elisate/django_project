@@ -1,0 +1,9 @@
+fever,cough,headache,fatigue,shortness_of_breath,disease
+1,1,0,1,0,Flu
+1,0,1,1,0,Migraine
+0,1,0,0,1,Pneumonia
+1,1,1,1,1,COVID-19
+0,0,1,0,0,Healthy
+1,1,0,1,1,Bronchitis
+1,0,0,1,0,Cold
+0,0,0,0,0,Healthy
