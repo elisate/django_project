@@ -42,7 +42,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'sources',
     'medical_ai',
-    'classProject'
+    'classProject',
+    'resourceFinder'
 ]
 
 MIDDLEWARE = [
