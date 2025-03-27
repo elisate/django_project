@@ -26,6 +26,7 @@ def predict_diagnosis(user, symptoms, location):
         recommended_doctors = []
         medical_supplies = []
         medical_resources = []
+        recommended_hospitals=[]
 
         # Open CSV and fetch recommended data
         file_path = os.path.join(os.path.dirname(__file__), "health_dataset.csv")
@@ -43,6 +44,7 @@ def predict_diagnosis(user, symptoms, location):
             recommended_doctors = match['Recommended_Doctors'].values[0].split(", ")
             medical_supplies = match['Medical_Supplies'].values[0].split(", ")
             medical_resources = match['Medical_Resources'].values[0].split(", ")
+            recommended_hospitals = match['Recommended_Hospitals'].values[0].split(", ")
         else:
             return {"error": "Diagnosis not found in dataset."}
 
@@ -54,7 +56,8 @@ def predict_diagnosis(user, symptoms, location):
             diagnosis=predicted_diagnosis,
             recommended_doctors=recommended_doctors,
             medical_supplies=medical_supplies,
-            medical_resources=medical_resources
+            medical_resources=medical_resources,
+            recommended_hospitals=recommended_hospitals
         )
         patient.save()
 
@@ -64,7 +67,8 @@ def predict_diagnosis(user, symptoms, location):
             "diagnosis": predicted_diagnosis,
             "recommended_doctors": recommended_doctors,
             "medical_supplies": medical_supplies,
-            "medical_resources": medical_resources
+            "medical_resources": medical_resources,
+            "recommended_hospitals":recommended_hospitals
         }
 
     except Exception as e:
