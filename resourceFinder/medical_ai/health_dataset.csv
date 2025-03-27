@@ -1,0 +1,15 @@
+Symptoms,Diagnosis,Recommended_Hospitals,Hospital_Location,Recommended_Doctors,Medical_Supplies,Medical_Resources
+"fever, cough",common cold,City Hospital,Kigali,Dr. John,Paracetamol,Stethoscope
+"headache, blurred vision",migraine,General Hospital,"Los Angeles, CA",Dr. Emma,Aspirin,MRI Scanner
+"chest pain, breathlessness",heart disease,Heart Care Center,"Boston, MA",Dr. Smith,Nitroglycerin,ECG Machine
+"joint pain, swelling",arthritis,Orthopedic Clinic,"Chicago, IL",Dr. Wilson,Ibuprofen,X-ray Machine
+"stomach pain, nausea",gastritis,Gastro Center,"Houston, TX",Dr. Lee,Antacids,Endoscopy Equipment
+"high blood pressure, headache",hypertension,Cardio Clinic,"Miami, FL",Dr. Patel,Beta Blockers,Blood Pressure Monitor
+"weight loss, fatigue",diabetes,Diabetes Care,"San Francisco, CA",Dr. Sarah,Insulin,Glucose Meter
+"itchy skin, redness",allergy,Dermatology Clinic,"Denver, CO",Dr. Grace,Antihistamines,Allergy Test Kit
+"sore throat, difficulty swallowing",tonsillitis,ENT Hospital,"Phoenix, AZ",Dr. Alan,Lozenges,Throat Swab Kit
+"frequent urination, thirst",kidney disease,Nephro Center,"Dallas, TX",Dr. Daniel,Diuretics,Dialysis Machine
+"abdominal pain, bloating",appendicitis,Emergency Hospital,Kigali,Dr. Carla,Antibiotics,Ultrasound Machine
+"dizziness, fainting",anemia,Hematology Center,"Atlanta, GA",Dr. James,Iron Supplements,Hemoglobin Test Kit
+"back pain, leg numbness",sciatica,Neuro Clinic,"Nashville, TN",Dr. Arthur,Muscle Relaxants,CT Scanner
+"shortness of breath, cough",pneumonia,Lung Care Center,"Philadelphia, PA",Dr. Lisa,Antibiotics,Oxygen Therapy Machine
