@@ -30,6 +30,8 @@ SECRET_KEY = 'django-insecure-+=1i7l(!vzgv4hbkffecp5(gi!xfbf67@f(eb4e*en86dp5qcm
 DEBUG = True
 
 ALLOWED_HOSTS = []
+CORS_ALLOW_ALL_ORIGINS = True
+
 
 
 # Application definition
@@ -43,10 +45,13 @@ INSTALLED_APPS = [
     'sources',
     'medical_ai',
     'classProject',
-    'resourceFinder'
+    'resourceFinder',
+    'corsheaders'
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',  # 👈 must be at the top
+    'django.middleware.common.CommonMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
