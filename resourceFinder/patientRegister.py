@@ -1,49 +1,64 @@
 from django.http import JsonResponse
-from resourceFinder.medical_ai.userModel import User  # Import User model
+from resourceFinder.medical_ai.userModel import User
 import json
 from django.views.decorators.csrf import csrf_exempt
-from django.contrib.auth.hashers import make_password  # Import for password hashing
+from django.contrib.auth.hashers import make_password
+from django.conf import settings
+from datetime import datetime
+import jwt
+from mongoengine.queryset.visitor import Q
 
 @csrf_exempt
 def register_user(request):
     if request.method == "POST":
-        # Parse the incoming JSON data
-        data_request = json.loads(request.body)
+        try:
+            data_request = json.loads(request.body)
 
-        # Extract data from the request
-        username = data_request.get('username')
-        email = data_request.get('email')
-        password = data_request.get('password')
+            # Normalize data
+            username = data_request.get('username', '').strip()
+            email = data_request.get('email', '').strip().lower()
+            password = data_request.get('password', '').strip()
 
-        # Check if all fields are provided
-        if not username or not email or not password:
-            return JsonResponse({"error": "Missing required fields (username, email, password)"}, status=400)
+            if not username or not email or not password:
+                return JsonResponse({"error": "Missing required fields (username, email, password)"}, status=400)
 
-        # Check if the user already exists by email or username
-        existing_user = User.objects(username=username).first() or User.objects(email=email).first()
+            # Normalize for matching (case-insensitive match)
+            existing_user = User.objects(
+                Q(username__iexact=username) | Q(email__iexact=email)
+            ).first()
 
-        if existing_user:
-            return JsonResponse({"error": "User already exists with this username or email"}, status=400)
+            if existing_user:
+                return JsonResponse({"error": "User already exists with this username or email"}, status=400)
 
-        # Hash the password before saving
-        hashed_password = make_password(password)
+            hashed_password = make_password(password)
 
-        # Create a new User object with the hashed password
-        new_user = User(
-            username=username,
-            email=email,
-            password=hashed_password
-        )
-        new_user.save()
+            new_user = User(
+                username=username,
+                email=email,
+                password=hashed_password
+            )
+            new_user.save()
 
-        # Return the user details as response (excluding password)
-        response = {
-            "user_id": str(new_user.id),
-            "username": new_user.username,
-            "email": new_user.email
-        }
+            payload = {
+                "user_id": str(new_user.id),
+                "username": new_user.username,
+                "email": new_user.email,
+                "exp": datetime.utcnow() + settings.JWT_ACCESS_TOKEN_LIFETIME,
+                "iat": datetime.utcnow()
+            }
 
-        return JsonResponse(response, status=201)
+            token = jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
-    # Return an error if the request method is not POST
-    return JsonResponse({"error": "Invalid request method"}, status=400)
+            return JsonResponse({
+                "token": token,
+                "user": {
+                    "user_id": str(new_user.id),
+                    "username": new_user.username,
+                    "email": new_user.email
+                }
+            }, status=201)
+
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON format"}, status=400)
+
+    return JsonResponse({"error": "Invalid request method"}, status=405)

@@ -16,6 +16,7 @@ from dotenv import load_dotenv
 
 from mongoengine import connect
 load_dotenv()
+from datetime import timedelta
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -24,7 +25,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-+=1i7l(!vzgv4hbkffecp5(gi!xfbf67@f(eb4e*en86dp5qcm'
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -46,7 +47,9 @@ INSTALLED_APPS = [
     'medical_ai',
     'classProject',
     'resourceFinder',
-    'corsheaders'
+    'corsheaders',
+    'rest_framework',
+    'rest_framework_simplejwt'
 ]
 
 MIDDLEWARE = [
@@ -81,6 +84,22 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'myproject.wsgi.application'
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+}
+
+
+
+# JWT Config for manual token creation
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", 'fallback-secret-key-if-missing')
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")  #  This now pulls from .env
+JWT_ALGORITHM = "HS256"
+JWT_ACCESS_TOKEN_LIFETIME = timedelta(minutes=50)
+
+
 
 
 # Database

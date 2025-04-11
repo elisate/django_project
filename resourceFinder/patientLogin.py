@@ -2,7 +2,10 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.hashers import check_password
 from resourceFinder.medical_ai.userModel import User
+from django.conf import settings
 import json
+import jwt
+from datetime import datetime, timedelta
 
 @csrf_exempt
 def login_user(request):
@@ -23,11 +26,25 @@ def login_user(request):
             if not user or not check_password(password, user.password):
                 return JsonResponse({"error": "Invalid email or password"}, status=401)
 
-            # Successful login response
-            return JsonResponse({
+            # JWT Token generation
+            payload = {
                 "user_id": str(user.id),
                 "username": user.username,
-                "email": user.email
+                "email": user.email,
+                "exp": datetime.utcnow() + settings.JWT_ACCESS_TOKEN_LIFETIME,
+                "iat": datetime.utcnow()
+            }
+
+            token = jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+
+            # Successful login response with token
+            return JsonResponse({
+                "token": token,
+                "user": {
+                    "user_id": str(user.id),
+                    "username": user.username,
+                    "email": user.email
+                }
             }, status=200)
 
         except json.JSONDecodeError:
