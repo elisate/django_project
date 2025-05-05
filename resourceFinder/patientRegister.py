@@ -1,12 +1,11 @@
 from django.http import JsonResponse
-from resourceFinder.medical_ai.userModel import User
+from resourceFinder.medical_ai.userModel import User, UserRole
 import json
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.hashers import make_password
 from django.conf import settings
 from datetime import datetime
 import jwt
-from mongoengine.queryset.visitor import Q
 
 @csrf_exempt
 def register_user(request):
@@ -15,34 +14,44 @@ def register_user(request):
             data_request = json.loads(request.body)
 
             # Normalize data
-            username = data_request.get('username', '').strip()
+            firstname = data_request.get('firstname', '').strip()
+            lastname = data_request.get('lastname', '').strip()
             email = data_request.get('email', '').strip().lower()
             password = data_request.get('password', '').strip()
+            user_role = data_request.get('userRole', UserRole.GENERAL_USER.value)
 
-            if not username or not email or not password:
-                return JsonResponse({"error": "Missing required fields (username, email, password)"}, status=400)
+            # Validate required fields
+            if not firstname or not lastname or not email or not password:
+                return JsonResponse({"error": "Missing required fields (firstname, lastname, email, password)"}, status=400)
 
-            # Normalize for matching (case-insensitive match)
-            existing_user = User.objects(
-                Q(username__iexact=username) | Q(email__iexact=email)
-            ).first()
+            # Validate userRole
+            if user_role not in [role.value for role in UserRole]:
+                return JsonResponse({"error": "Invalid userRole"}, status=400)
 
-            if existing_user:
-                return JsonResponse({"error": "User already exists with this username or email"}, status=400)
+            # Check for existing user by email only
+            if User.objects(email__iexact=email).first():
+                return JsonResponse({"error": "User already exists with this email"}, status=400)
 
+            # Hash the password
             hashed_password = make_password(password)
 
+            # Create and save the new user
             new_user = User(
-                username=username,
+                firstname=firstname,
+                lastname=lastname,
                 email=email,
-                password=hashed_password
+                password=hashed_password,
+                userRole=user_role
             )
             new_user.save()
 
+            # Prepare JWT payload
             payload = {
                 "user_id": str(new_user.id),
-                "username": new_user.username,
+                "firstname": new_user.firstname,
+                "lastname": new_user.lastname,
                 "email": new_user.email,
+                "userRole": new_user.userRole,
                 "exp": datetime.utcnow() + settings.JWT_ACCESS_TOKEN_LIFETIME,
                 "iat": datetime.utcnow()
             }
@@ -53,8 +62,10 @@ def register_user(request):
                 "token": token,
                 "user": {
                     "user_id": str(new_user.id),
-                    "username": new_user.username,
-                    "email": new_user.email
+                    "firstname": new_user.firstname,
+                    "lastname": new_user.lastname,
+                    "email": new_user.email,
+                    "userRole": new_user.userRole
                 }
             }, status=201)
 

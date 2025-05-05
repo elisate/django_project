@@ -1,7 +1,7 @@
 from mongoengine import Document, StringField, ListField, ReferenceField
 from resourceFinder.medical_ai.userModel import User  # Ensure lazy import if needed
 
-class Patient(Document):
+class PredictionTable(Document):
     user = ReferenceField('User', required=True)
     symptoms = StringField()
     location = StringField()

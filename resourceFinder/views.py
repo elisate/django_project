@@ -2,7 +2,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
 from .medical_ai.ai_prediction import predict_diagnosis
-from resourceFinder.medical_ai.models import Patient
+from resourceFinder.medical_ai.models import PredictionTable
 from resourceFinder.medical_ai.userModel import User  # Import user model
 from resourceFinder.medical_ai.PredictionResult_model import PredictionResult  # Import PredictionResult model
 

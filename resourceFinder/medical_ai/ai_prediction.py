@@ -1,19 +1,19 @@
 import joblib
-from .models import Patient
+from .models import PredictionTable
 import pandas as pd
 import os
 
 # Load trained model
-model = joblib.load(r"C:\Users\user\Desktop\finalp\resourceFinder\medical_ai\diagnosis_model.pkl")
+model = joblib.load(r"C:\Users\user\Desktop\FINAL YEAR PRO CODE\finalp\resourceFinder\medical_ai\diagnosis_model.pkl")
 
 def predict_diagnosis(user, symptoms, location):
     """
-    Predict diagnosis and save patient data in MongoDB.
+    Predict diagnosis and save prediction data in MongoDB.
     
     :param user: User ID
     :param symptoms: List of symptoms
     :param location: User's location
-    :return: Patient record (saved in MongoDB)
+    :return: PredictionTable record (saved in MongoDB)
     """
     try:
         # Convert symptoms list to a string
@@ -49,7 +49,7 @@ def predict_diagnosis(user, symptoms, location):
             return {"error": "Diagnosis not found in dataset."}
 
         # Create and save patient record in MongoDB
-        patient = Patient(
+        predictionTable = PredictionTable(
             user=user,
             symptoms=symptoms_str,
             location=location,
@@ -59,10 +59,10 @@ def predict_diagnosis(user, symptoms, location):
             medical_resources=medical_resources,
             recommended_hospitals=recommended_hospitals
         )
-        patient.save()
+        predictionTable.save()
 
         return {
-            "patient_id": str(patient.id),
+            "prediction_id": str(predictionTable.id),
             "user": str(user),
             "diagnosis": predicted_diagnosis,
             "recommended_doctors": recommended_doctors,
