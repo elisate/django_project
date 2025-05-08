@@ -3,19 +3,20 @@ from enum import Enum
 
 # Define Enum for user roles
 class UserRole(str, Enum):
-    GENERAL_USER = "general_user"
+    
     PATIENT = "patient"
     DOCTOR = "doctor"
     HOSPITAL = "hospital"
 
 class User(Document):
-    firstname = StringField(required=True)
-    lastname = StringField(required=True)
+    firstname = StringField(required=False)
+    lastname = StringField(required=False)
+    hospitalName = StringField(required=False)
     email = StringField(required=True, unique=True)
     password = StringField(required=True)
     userRole = StringField(
         choices=[role.value for role in UserRole],
-        default=UserRole.GENERAL_USER.value
+        default=UserRole.PATIENT.value
     )
 
     # Lazy import of Patient when it's actually needed

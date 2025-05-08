@@ -29,7 +29,8 @@ def login_user(request):
             # JWT Token generation
             payload = {
                 "user_id": str(user.id),
-                "username": user.username,
+                "firstname": user.firstname,
+                "lastname": user.lastname,
                 "email": user.email,
                 "exp": datetime.utcnow() + settings.JWT_ACCESS_TOKEN_LIFETIME,
                 "iat": datetime.utcnow()
@@ -42,7 +43,8 @@ def login_user(request):
                 "token": token,
                 "user": {
                     "user_id": str(user.id),
-                    "username": user.username,
+                    "firstname": user.firstname,
+                    "lastname": user.lastname,
                     "email": user.email
                 }
             }, status=200)

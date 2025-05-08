@@ -18,7 +18,7 @@ def register_user(request):
             lastname = data_request.get('lastname', '').strip()
             email = data_request.get('email', '').strip().lower()
             password = data_request.get('password', '').strip()
-            user_role = data_request.get('userRole', UserRole.GENERAL_USER.value)
+            user_role = data_request.get('userRole', UserRole.PATIENT.value)
 
             # Validate required fields
             if not firstname or not lastname or not email or not password:
