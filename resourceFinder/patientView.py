@@ -1,28 +1,47 @@
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
+from django.contrib.auth.hashers import make_password
+from django.conf import settings
 from resourceFinder.medical_ai.userModel import User, UserRole
 from resourceFinder.medical_ai.patientModel import Patient
 from resourceFinder.medical_ai.hospitalModel import Hospital
+from datetime import datetime
+import jwt
 
 @csrf_exempt
 def create_patient(request):
     if request.method == 'POST':
         try:
-            # Use request.POST for text fields and request.FILES for the uploaded file
             data = request.POST
             image = request.FILES.get('profile_image')
 
-            # 1. Create User
+            email = data.get('email', '').strip().lower()
+            password = data.get('password', '').strip()
+
+            # Validate required fields
+            required_fields = ['firstname', 'lastname', 'email', 'password', 'national_id']
+            for field in required_fields:
+                if not data.get(field):
+                    return JsonResponse({'error': f'Missing required field: {field}'}, status=400)
+
+            # Prevent duplicate email
+            if User.objects(email__iexact=email).first():
+                return JsonResponse({'error': 'User already exists with this email'}, status=400)
+
+            # Hash the password
+            hashed_password = make_password(password)
+
+            # Create User
             user = User(
                 firstname=data.get('firstname'),
                 lastname=data.get('lastname'),
-                email=data.get('email'),
-                password=data.get('password'),
+                email=email,
+                password=hashed_password,
                 userRole=UserRole.PATIENT.value
             )
             user.save()
 
-            # 2. Create Patient
+            # Create Patient
             patient = Patient(
                 user=user,
                 national_id=data.get('national_id'),
@@ -31,10 +50,10 @@ def create_patient(request):
                 phone=data.get('phone'),
                 height_cm=data.get('height'),
                 weight_kg=data.get('weight'),
-                profile_image=image  # FileField accepts uploaded file object
+                profile_image=image
             )
 
-            # 3. Assign to hospital (if provided)
+            # Optional hospital assignment
             hospital_id = data.get('hospital_id')
             if hospital_id:
                 hospital = Hospital.objects(id=hospital_id).first()
@@ -43,8 +62,30 @@ def create_patient(request):
 
             patient.save()
 
-            return JsonResponse({'message': 'Patient created successfully', 'patient_id': str(patient.id)})
+            # Generate JWT token
+            payload = {
+                "user_id": str(user.id),
+                "email": user.email,
+                "userRole": user.userRole,
+                "exp": datetime.utcnow() + settings.JWT_ACCESS_TOKEN_LIFETIME,
+                "iat": datetime.utcnow()
+            }
+            token = jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+
+            return JsonResponse({
+                'message': 'Patient created successfully',
+                'token': token,
+                'user': {
+                    'user_id': str(user.id),
+                    'firstname': user.firstname,
+                    'lastname': user.lastname,
+                    'email': user.email,
+                    'userRole': user.userRole
+                },
+                'patient_id': str(patient.id)
+            }, status=201)
+
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
-    
+
     return JsonResponse({'error': 'Only POST method is allowed'}, status=405)

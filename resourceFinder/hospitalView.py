@@ -1,32 +1,45 @@
 from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.hashers import make_password
 from resourceFinder.medical_ai.hospitalModel import Hospital
 from resourceFinder.medical_ai.userModel import User, UserRole
-import json
 from mongoengine.errors import NotUniqueError, ValidationError
+from django.conf import settings
+from datetime import datetime
+import json
+import jwt
 
+@csrf_exempt
 def create_hospital(request):
     if request.method == "POST":
         try:
             data = json.loads(request.body)
 
             hospital_name = data["hospital_name"]
-            email = data["email"]
-            password = data["password"]
+            email = data["email"].strip().lower()
+            password = data["password"].strip()
             location = data["location"]
             contact = data.get("contact", "")
             supplies = data.get("Medical_Supplies", [])
             resources = data.get("Medical_Resources", [])
 
+            # Check if email already exists
+            if User.objects(email__iexact=email).first():
+                return JsonResponse({"error": "User already exists with this email"}, status=400)
+
+            # Hash the password
+            hashed_password = make_password(password)
+
             # Create user (with role = hospital)
             user = User(
                 hospitalName=hospital_name,
                 email=email,
-                password=password,
+                password=hashed_password,
                 userRole=UserRole.HOSPITAL.value
             )
             user.save()
 
-            # Create hospital
+            # Create hospital record
             hospital = Hospital(
                 user=user,
                 hospital_name=hospital_name,
@@ -38,10 +51,31 @@ def create_hospital(request):
             )
             hospital.save()
 
+            # Generate JWT token
+            payload = {
+                "user_id": str(user.id),
+                "email": user.email,
+                "userRole": user.userRole,
+                "exp": datetime.utcnow() + settings.JWT_ACCESS_TOKEN_LIFETIME,
+                "iat": datetime.utcnow()
+            }
+
+            token = jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+
             return JsonResponse({
                 "message": "Hospital and user account created successfully.",
-                "user_id": str(user.id),
-                "hospital_id": str(hospital.id)
+                "token": token,
+                "user": {
+                    "user_id": str(user.id),
+                    "email": user.email,
+                    "userRole": user.userRole
+                },
+                "hospital": {
+                    "hospital_id": str(hospital.id),
+                    "hospital_name": hospital.hospital_name,
+                    "location": hospital.location,
+                    "contact": hospital.contact
+                }
             }, status=201)
 
         except NotUniqueError:
@@ -52,3 +86,5 @@ def create_hospital(request):
             return JsonResponse({"error": str(ve)}, status=400)
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=400)
+
+    return JsonResponse({"error": "Invalid request method"}, status=405)

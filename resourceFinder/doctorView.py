@@ -1,5 +1,10 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.hashers import make_password
+from django.conf import settings
+from datetime import datetime
+import jwt
+
 from resourceFinder.medical_ai.userModel import User, UserRole
 from resourceFinder.medical_ai.doctorModel import Doctor
 from resourceFinder.medical_ai.hospitalModel import Hospital
@@ -8,55 +13,90 @@ from resourceFinder.medical_ai.hospitalModel import Hospital
 def create_doctor(request):
     if request.method == 'POST':
         try:
-            # Use request.POST for text and request.FILES for the file
             data = request.POST
+            image = request.FILES.get('profile_image')
 
-            # 1. Create User
+            email = data.get('email', '').strip().lower()
+            password = data.get('password', '').strip()
+
+            # Required field validation
+            required_fields = ['firstname', 'lastname', 'email', 'password', 'full_name', 'specialty']
+            for field in required_fields:
+                if not data.get(field):
+                    return JsonResponse({'error': f'Missing required field: {field}'}, status=400)
+
+            # Check for duplicate email
+            if User.objects(email__iexact=email).first():
+                return JsonResponse({'error': 'User already exists with this email'}, status=400)
+
+            # Hash the password
+            hashed_password = make_password(password)
+
+            # Create User
             user = User(
                 firstname=data.get('firstname'),
                 lastname=data.get('lastname'),
-                email=data.get('email'),
-                password=data.get('password'),
+                email=email,
+                password=hashed_password,
                 userRole=UserRole.DOCTOR.value
             )
             user.save()
 
-            # 2. Create Doctor
+            # Create Doctor
             doctor = Doctor(
                 user=user,
                 full_name=data.get('full_name'),
                 age=data.get('age'),
                 gender=data.get('gender'),
                 phone=data.get('phone'),
-                email=data.get('email'),
+                email=email,
                 notes=data.get('notes'),
                 specialty=data.get('specialty'),
                 certifications=data.getlist('certifications'),
                 available_times=data.getlist('available_times'),
             )
 
-            # 3. Handle image upload if provided
-            if 'profile_image' in request.FILES:
-                image = request.FILES['profile_image']
+            if image:
                 doctor.profile_image.put(image, content_type=image.content_type)
 
-            # 4. Assign hospital if provided
+            # Assign to hospital if provided
             hospital_id = data.get('hospital_id')
             if hospital_id:
                 hospital = Hospital.objects(id=hospital_id).first()
                 if not hospital:
                     return JsonResponse({'error': 'Hospital not found'}, status=404)
-                
+
                 doctor.hospital = hospital
                 doctor.save()
 
-                # Add doctor to hospital
+                # Add doctor to hospital's assigned list
                 hospital.doctors_assigned.append(doctor)
                 hospital.save()
             else:
                 doctor.save()
 
-            return JsonResponse({'message': 'Doctor created successfully', 'doctor_id': str(doctor.id)})
+            # Generate JWT token
+            payload = {
+                "user_id": str(user.id),
+                "email": user.email,
+                "userRole": user.userRole,
+                "exp": datetime.utcnow() + settings.JWT_ACCESS_TOKEN_LIFETIME,
+                "iat": datetime.utcnow()
+            }
+            token = jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+
+            return JsonResponse({
+                'message': 'Doctor created successfully',
+                'token': token,
+                'user': {
+                    'user_id': str(user.id),
+                    'firstname': user.firstname,
+                    'lastname': user.lastname,
+                    'email': user.email,
+                    'userRole': user.userRole
+                },
+                'doctor_id': str(doctor.id)
+            }, status=201)
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
