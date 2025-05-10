@@ -4,7 +4,7 @@ from mongoengine import FileField
 
 class Doctor(Document):
     user = ReferenceField(User, required=True, unique=True)  # Link to User account
-    full_name = StringField(required=True)
+    full_name = StringField(required=False)
     age = StringField()
     gender = StringField(choices=["Male", "Female", "Other"])
     profile_image = FileField()

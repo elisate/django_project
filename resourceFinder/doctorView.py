@@ -20,7 +20,7 @@ def create_doctor(request):
             password = data.get('password', '').strip()
 
             # Required field validation
-            required_fields = ['firstname', 'lastname', 'email', 'password', 'full_name', 'specialty']
+            required_fields = ['firstname', 'lastname', 'email', 'password', 'specialty']
             for field in required_fields:
                 if not data.get(field):
                     return JsonResponse({'error': f'Missing required field: {field}'}, status=400)

@@ -68,7 +68,8 @@ def create_hospital(request):
                 "user": {
                     "user_id": str(user.id),
                     "email": user.email,
-                    "userRole": user.userRole
+                    "userRole": user.userRole,
+                    "hospital_id":str(user._id)
                 },
                 "hospital": {
                     "hospital_id": str(hospital.id),
