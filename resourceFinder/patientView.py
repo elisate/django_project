@@ -14,15 +14,18 @@ def create_patient(request):
         try:
             data = request.POST
             image = request.FILES.get('profile_image')
-
-            email = data.get('email', '').strip().lower()
-            password = data.get('password', '').strip()
+            if image is None:
+                return JsonResponse({'error': 'Profile image is required'}, status=400)
 
             # Validate required fields
             required_fields = ['firstname', 'lastname', 'email', 'password', 'national_id']
             for field in required_fields:
-                if not data.get(field):
+                value = data.get(field, '').strip()
+                if not value:
                     return JsonResponse({'error': f'Missing required field: {field}'}, status=400)
+
+            email = data.get('email', '').strip().lower()
+            password = data.get('password', '').strip()
 
             # Prevent duplicate email
             if User.objects(email__iexact=email).first():
@@ -45,6 +48,8 @@ def create_patient(request):
             patient = Patient(
                 user=user,
                 national_id=data.get('national_id'),
+                firstname=data.get('firstname'),
+                lastname=data.get('lastname'),
                 age=data.get('age'),
                 gender=data.get('gender'),
                 phone=data.get('phone'),
@@ -57,8 +62,9 @@ def create_patient(request):
             hospital_id = data.get('hospital_id')
             if hospital_id:
                 hospital = Hospital.objects(id=hospital_id).first()
-                if hospital:
-                    patient.hospital = hospital
+                if not hospital:
+                    return JsonResponse({'error': 'Hospital not found'}, status=404)
+                patient.hospital = hospital
 
             patient.save()
 
@@ -70,7 +76,10 @@ def create_patient(request):
                 "exp": datetime.utcnow() + settings.JWT_ACCESS_TOKEN_LIFETIME,
                 "iat": datetime.utcnow()
             }
-            token = jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+            try:
+                token = jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+            except Exception as e:
+                return JsonResponse({'error': 'Failed to generate token', 'details': str(e)}, status=500)
 
             return JsonResponse({
                 'message': 'Patient created successfully',

@@ -11,6 +11,8 @@ class Patient(Document):
     phone = StringField()
     height_cm = StringField()
     weight_kg = StringField()
+    firstname = StringField()
+    lastname = StringField()
     hospital = ReferenceField(Hospital, required=False)  # Optional hospital reference
 
     medical_history = ListField(StringField())
