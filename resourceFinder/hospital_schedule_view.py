@@ -3,39 +3,43 @@ from django.http import JsonResponse
 from resourceFinder.medical_ai.scheduleModel import HospitalSchedule, TimeSlot
 from resourceFinder.medical_ai.hospitalModel import Hospital
 import json
-
+import traceback
 def parse_timeslots(day_data):
     if not isinstance(day_data, list):
         raise ValueError("Each day's schedule must be a list of timeslot dictionaries.")
     return [TimeSlot(**slot) for slot in day_data if isinstance(slot, dict)]
-
 
 def create_or_update_hospital_schedule(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
             hospital_id = data.get('hospital_id')
+            print("Hospital ID:", hospital_id)
+
             hospital = Hospital.objects(id=hospital_id).first()
+            print("Hospital Found:", hospital)
 
             if not hospital:
                 return JsonResponse({"error": "Hospital not found"}, status=404)
 
-            schedule = HospitalSchedule.objects(hospital=hospital).first()
+            existing_schedule = HospitalSchedule.objects(hospital=hospital).first()
             timeslot_fields = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
-
             parsed_data = {day: parse_timeslots(data.get(day, [])) for day in timeslot_fields}
+            print("Parsed Data:", parsed_data)
 
-            if schedule:
+            if existing_schedule:
                 for day, slots in parsed_data.items():
-                    setattr(schedule, day, slots)
-                schedule.save()
-                return JsonResponse({"message": "Schedule updated"}, status=200)
+                    setattr(existing_schedule, day, slots)
+                existing_schedule.save()
+                return JsonResponse({"message": "Schedule updated successfully."}, status=200)
             else:
                 new_schedule = HospitalSchedule(hospital=hospital, **parsed_data)
                 new_schedule.save()
-                return JsonResponse({"message": "Schedule created"}, status=201)
+                return JsonResponse({"message": "Schedule created successfully."}, status=201)
 
         except Exception as e:
+            print("Error occurred:", str(e))
+            print(traceback.format_exc())
             return JsonResponse({"error": f"An error occurred: {str(e)}"}, status=500)
 
 def get_hospital_schedule(request, hospital_id):
