@@ -69,16 +69,17 @@ def get_hospital_schedule(request, hospital_id):
 
 @csrf_exempt
 def update_schedule_slot(request):
-    if request.method == 'POST':
+    if request.method == 'PUT':
         try:
             data = json.loads(request.body)
             hospital_id = data.get("hospital_id")
             day = data.get("day")
-            new_slot = data.get("slot")  # The slot to add or update
-            slot_index = data.get("index", None)  # Optional: index of slot to replace
+            new_slot = data.get("slot")  # Single slot (dict)
+            slot_index = data.get("index")  # Optional index
+            slots = data.get("slots")  # Optional list of slots
 
-            if not (hospital_id and day and new_slot):
-                return JsonResponse({"error": "Missing data"}, status=400)
+            if not (hospital_id and day):
+                return JsonResponse({"error": "Missing hospital_id or day"}, status=400)
 
             hospital = Hospital.objects(id=hospital_id).first()
             if not hospital:
@@ -91,53 +92,33 @@ def update_schedule_slot(request):
             if day not in ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]:
                 return JsonResponse({"error": "Invalid day name"}, status=400)
 
-            day_slots = getattr(schedule, day)
+            # Update a single slot (by index or append)
+            if new_slot:
+                day_slots = getattr(schedule, day)
+                timeslot = TimeSlot(**new_slot)
 
-            if slot_index is not None and isinstance(slot_index, int):
-                if 0 <= slot_index < len(day_slots):
-                    day_slots[slot_index] = TimeSlot(**new_slot)
+                if slot_index is not None and isinstance(slot_index, int):
+                    if 0 <= slot_index < len(day_slots):
+                        day_slots[slot_index] = timeslot
+                    else:
+                        return JsonResponse({"error": "Invalid slot index"}, status=400)
                 else:
-                    return JsonResponse({"error": "Invalid slot index"}, status=400)
+                    day_slots.append(timeslot)
+
+                setattr(schedule, day, day_slots)
+
+            # Replace all slots for a day
+            elif slots is not None and isinstance(slots, list):
+                timeslot_objs = [TimeSlot(**slot) for slot in slots if isinstance(slot, dict)]
+                setattr(schedule, day, timeslot_objs)
+
             else:
-                # Append new slot if index is not provided
-                day_slots.append(TimeSlot(**new_slot))
+                return JsonResponse({"error": "Either 'slot' or 'slots' must be provided"}, status=400)
 
-            setattr(schedule, day, day_slots)
             schedule.save()
-
-            return JsonResponse({"message": f"{day.capitalize()} slot updated successfully"}, status=200)
+            return JsonResponse({"message": f"{day.capitalize()} schedule updated successfully"}, status=200)
 
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            hospital_id = data.get("hospital_id")
-            day = data.get("day")  # e.g., "monday"
-            slots = data.get("slots", [])
 
-            if not (hospital_id and day and isinstance(slots, list)):
-                return JsonResponse({"error": "Invalid input format"}, status=400)
-
-            hospital = Hospital.objects(id=hospital_id).first()
-            if not hospital:
-                return JsonResponse({"error": "Hospital not found"}, status=404)
-
-            schedule = HospitalSchedule.objects(hospital=hospital).first()
-            if not schedule:
-                return JsonResponse({"error": "Schedule not found"}, status=404)
-
-            # Validate day
-            valid_days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
-            if day not in valid_days:
-                return JsonResponse({"error": "Invalid day"}, status=400)
-
-            # Update only the specified day
-            timeslot_objs = [TimeSlot(**slot) for slot in slots if isinstance(slot, dict)]
-            setattr(schedule, day, timeslot_objs)
-            schedule.save()
-
-            return JsonResponse({"message": f"{day.capitalize()} schedule updated"}, status=200)
-
-        except Exception as e:
-            return JsonResponse({"error": str(e)}, status=500)
+    return JsonResponse({"error": "Only PUT method is allowed"}, status=405)
