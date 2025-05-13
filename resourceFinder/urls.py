@@ -8,7 +8,7 @@ from resourceFinder.hospitalView import (
 )
 from resourceFinder.doctorView import create_doctor
 from resourceFinder.patientView import create_patient
-from resourceFinder.hospital_schedule_view import create_or_update_hospital_schedule
+from resourceFinder.hospital_schedule_view import (create_or_update_hospital_schedule,get_hospital_schedule,update_schedule_slot)
 from resourceFinder.appointment_view import request_hospital_appointment
 
 urlpatterns = [
@@ -21,7 +21,10 @@ urlpatterns = [
     path("/doctor/create",create_doctor),
     path("/patient/create",create_patient),
     path("/schedule/create",create_or_update_hospital_schedule),
+    path('/schedule/get/<str:hospital_id>/',get_hospital_schedule),
+    path("/schedule/update_day",update_schedule_slot),
     path("/Appointment/createRequest",request_hospital_appointment)
+    
     
     
 ]
