@@ -122,3 +122,40 @@ def update_schedule_slot(request):
             return JsonResponse({"error": str(e)}, status=500)
 
     return JsonResponse({"error": "Only PUT method is allowed"}, status=405)
+
+@csrf_exempt
+def delete_schedule_slot(request):
+    if request.method == 'DELETE':
+        try:
+            data = json.loads(request.body)
+            hospital_id = data.get("hospital_id")
+            day = data.get("day")
+            slot_index = data.get("index")
+
+            if not all([hospital_id, day, isinstance(slot_index, int)]):
+                return JsonResponse({"error": "Missing or invalid hospital_id, day, or index"}, status=400)
+
+            hospital = Hospital.objects(id=hospital_id).first()
+            if not hospital:
+                return JsonResponse({"error": "Hospital not found"}, status=404)
+
+            schedule = HospitalSchedule.objects(hospital=hospital).first()
+            if not schedule:
+                return JsonResponse({"error": "Schedule not found"}, status=404)
+
+            if day not in ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]:
+                return JsonResponse({"error": "Invalid day name"}, status=400)
+
+            day_slots = getattr(schedule, day)
+            if 0 <= slot_index < len(day_slots):
+                del day_slots[slot_index]
+                setattr(schedule, day, day_slots)
+                schedule.save()
+                return JsonResponse({"message": f"Slot at index {slot_index} on {day.capitalize()} deleted successfully"}, status=200)
+            else:
+                return JsonResponse({"error": "Invalid slot index"}, status=400)
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse({"error": "Only DELETE method is allowed"}, status=405)
