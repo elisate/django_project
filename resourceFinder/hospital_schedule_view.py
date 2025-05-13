@@ -163,3 +163,36 @@ def delete_schedule_slot(request):
             return JsonResponse({"error": str(e)}, status=500)
 
     return JsonResponse({"error": "Only DELETE method is allowed"}, status=405)
+
+
+@csrf_exempt
+def get_hospital_schedule_by_name(request, hospital_name):
+    if request.method == 'GET':
+        try:
+            hospital = Hospital.objects(hospital_name__iexact=hospital_name).first()
+
+            if not hospital:
+                return JsonResponse({"error": "Hospital not found"}, status=404)
+
+            schedule = HospitalSchedule.objects(hospital=hospital).first()
+
+            if not schedule:
+                return JsonResponse({"error": "Schedule not found"}, status=404)
+
+            return JsonResponse({
+                "hospital_id": str(hospital.id),
+                "schedule": {
+                    "monday": [slot.to_mongo().to_dict() for slot in schedule.monday],
+                    "tuesday": [slot.to_mongo().to_dict() for slot in schedule.tuesday],
+                    "wednesday": [slot.to_mongo().to_dict() for slot in schedule.wednesday],
+                    "thursday": [slot.to_mongo().to_dict() for slot in schedule.thursday],
+                    "friday": [slot.to_mongo().to_dict() for slot in schedule.friday],
+                    "saturday": [slot.to_mongo().to_dict() for slot in schedule.saturday],
+                    "sunday": [slot.to_mongo().to_dict() for slot in schedule.sunday],
+                }
+            }, status=200)
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse({"error": "Invalid request method"}, status=405)
