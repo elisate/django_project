@@ -10,55 +10,78 @@ from resourceFinder.medical_ai.appointmentModel import Appointment
 
 @csrf_exempt
 def request_hospital_appointment(request):
-    if request.method == "POST":
-        try:
-            # Get user_id from request
-            user_id = getattr(request, "user_id", None)
-            if not user_id:
-                return JsonResponse({"error": "Unauthorized"}, status=401)
+    if request.method != "POST":
+        return JsonResponse({"error": "Only POST allowed"}, status=405)
 
-            # Get request data
-            data = json.loads(request.body)
-            hospital_name = data.get("hospital_name")  # Use hospital name
-            appointment_date_str = data.get("appointment_date")
+    try:
+        # 1. Get user ID from request
+        user_id = getattr(request, "user_id", None)
+        if not user_id:
+            return JsonResponse({"error": "Unauthorized"}, status=401)
 
-            # Fetch user and hospital by name
-            user = User.objects(id=user_id).first()
-            hospital = Hospital.objects(hospital_name=hospital_name).first()  # Search by name
-            prediction = PredictionResult.objects(user=user).order_by("-created_at").first()
+        # 2. Parse request data
+        data = json.loads(request.body)
+        hospital_name = data.get("hospital_name")
+        appointment_datetime_str = data.get("appointment_date")  # Example: "2025-05-15T14:58"
 
-            if not all([user, hospital, prediction]):
-                return JsonResponse({"error": "Missing user, hospital, or prediction"}, status=400)
+        if not hospital_name or not appointment_datetime_str:
+            return JsonResponse({"error": "hospital_name and appointment_date are required"}, status=400)
 
-            # Fetch the hospital's schedule
-            schedule = HospitalSchedule.objects(hospital=hospital).first()
-            if not schedule:
-                return JsonResponse({"error": "Hospital schedule not found"}, status=400)
+        # 3. Fetch models
+        user = User.objects(id=user_id).first()
+        hospital = Hospital.objects(hospital_name=hospital_name).first()
+        prediction = PredictionResult.objects(user=user).order_by("-created_at").first()
 
-            # Parse the appointment date
-            appointment_dt = datetime.fromisoformat(appointment_date_str)
-            weekday = appointment_dt.strftime("%A").lower()  # Get day of the week
-            hour_min = appointment_dt.strftime("%H:%M")  # Get the time in HH:MM format
+        if not all([user, hospital, prediction]):
+            return JsonResponse({"error": "Missing user, hospital, or prediction"}, status=404)
 
-            # Check if the chosen time is available in the schedule
-            available_slots = getattr(schedule, weekday, [])
-            valid = any(start <= hour_min <= end for slot in available_slots for start, end in [slot.split("-")])
+        # 4. Parse datetime and extract day/time
+        appointment_dt = datetime.fromisoformat(appointment_datetime_str)
+        day_name = appointment_dt.strftime("%A").lower()  # "monday"
+        time_str = appointment_dt.strftime("%H:%M")        # "14:58"
 
-            if not valid:
-                return JsonResponse({"error": "Appointment time not in hospital schedule"}, status=400)
+        # 5. Validate hospital schedule
+        schedule = HospitalSchedule.objects(hospital=hospital).first()
+        if not schedule:
+            return JsonResponse({"error": "Hospital schedule not found"}, status=404)
 
-            # Create the appointment
-            appointment = Appointment(
-                user=user,
-                hospital=hospital,
-                prediction=prediction,
-                appointment_date=appointment_dt
-            )
-            appointment.save()
+        available_slots = getattr(schedule, day_name, [])
+        end_time = None
+        for slot in available_slots:
+            start, end = slot.split("-")
+            if start <= time_str <= end:
+                end_time = end
+                break
 
-            return JsonResponse({"message": "Appointment booked", "appointment_id": str(appointment.id)})
+        if not end_time:
+            return JsonResponse({"error": "Selected time not in hospital's available schedule"}, status=400)
 
-        except Exception as e:
-            return JsonResponse({"error": str(e)}, status=500)
+        # 6. Create and save appointment
+        appointment = Appointment(
+            user=user,
+            hospital=hospital,
+            prediction=prediction,
+            day=day_name,
+            date=appointment_dt.date(),
+            start_time=time_str,
+            end_time=end_time,
+            status="pending"  # default
+        )
+        appointment.save()
 
-    return JsonResponse({"error": "Only POST allowed"}, status=405)
+        # 7. Response
+        return JsonResponse({
+            "message": "Appointment booked successfully",
+            "appointment": {
+                "id": str(appointment.id),
+                "user": str(user.id),
+                "hospital": hospital.hospital_name,
+                "day": appointment.day,
+                "date": str(appointment.date),
+                "time": f"{appointment.start_time} - {appointment.end_time}",
+                "status": appointment.status
+            }
+        }, status=201)
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
