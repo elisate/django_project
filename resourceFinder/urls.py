@@ -2,7 +2,7 @@ from django.urls import path
 from .views import patient_predict
 from .patientRegister import register_user
 from .patientLogin import login_user
-from .Pridiction_Res_view import get_prediction_result
+from .Pridiction_Res_view import (get_prediction_result,get_prediction_by_id)
 from resourceFinder.hospitalView import (
     create_hospital
 )
@@ -20,7 +20,7 @@ urlpatterns = [
     path("/register",register_user),
     path("/login",login_user),
     path("/liveResultPredicted",get_prediction_result),
-    
+    path("/liveResultPredicted/predictions/<str:prediction_id>/",get_prediction_by_id),
     path("/hospitals/create",create_hospital),
     path("/doctor/create",create_doctor),
     path("/patient/create",create_patient),
