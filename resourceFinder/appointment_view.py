@@ -1,7 +1,7 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from resourceFinder.medical_ai.userModel import User
 from resourceFinder.medical_ai.hospitalModel import Hospital
 from resourceFinder.medical_ai.scheduleModel import HospitalSchedule
@@ -23,6 +23,8 @@ def request_hospital_appointment(request):
         data = json.loads(request.body)
         hospital_name = data.get("hospital_name")
         appointment_datetime_str = data.get("appointment_date")  # Example: "2025-05-15T14:58"
+        start_time = data.get("start_time")  # Optional
+        end_time = data.get("end_time")      # Optional
 
         if not hospital_name or not appointment_datetime_str:
             return JsonResponse({"error": "hospital_name and appointment_date are required"}, status=400)
@@ -35,41 +37,31 @@ def request_hospital_appointment(request):
         if not all([user, hospital, prediction]):
             return JsonResponse({"error": "Missing user, hospital, or prediction"}, status=404)
 
-        # 4. Parse datetime and extract day/time
+        # 4. Parse datetime and fallback for times if not provided
         appointment_dt = datetime.fromisoformat(appointment_datetime_str)
-        day_name = appointment_dt.strftime("%A").lower()  # "monday"
-        time_str = appointment_dt.strftime("%H:%M")        # "14:58"
+        day_name = appointment_dt.strftime("%A").lower()
 
-        # 5. Validate hospital schedule
-        schedule = HospitalSchedule.objects(hospital=hospital).first()
-        if not schedule:
-            return JsonResponse({"error": "Hospital schedule not found"}, status=404)
-
-        available_slots = getattr(schedule, day_name, [])
-        end_time = None
-        for slot in available_slots:
-            start, end = slot.split("-")
-            if start <= time_str <= end:
-                end_time = end
-                break
+        if not start_time:
+            start_time = appointment_dt.strftime("%H:%M")
 
         if not end_time:
-            return JsonResponse({"error": "Selected time not in hospital's available schedule"}, status=400)
+            temp_dt = appointment_dt + timedelta(minutes=30)
+            end_time = temp_dt.strftime("%H:%M")
 
-        # 6. Create and save appointment
+        # 5. Create and save appointment
         appointment = Appointment(
             user=user,
             hospital=hospital,
             prediction=prediction,
             day=day_name,
             date=appointment_dt.date(),
-            start_time=time_str,
+            start_time=start_time,
             end_time=end_time,
-            status="pending"  # default
+            status="pending"
         )
         appointment.save()
 
-        # 7. Response
+        # 6. Response
         return JsonResponse({
             "message": "Appointment booked successfully",
             "appointment": {
