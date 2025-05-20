@@ -7,7 +7,7 @@ from resourceFinder.medical_ai.hospitalModel import Hospital
 from resourceFinder.medical_ai.scheduleModel import HospitalSchedule
 from resourceFinder.medical_ai.PredictionResult_model import PredictionResult
 from resourceFinder.medical_ai.appointmentModel import Appointment
-
+from bson import ObjectId
 @csrf_exempt
 def request_hospital_appointment(request):
     if request.method != "POST":
@@ -74,6 +74,42 @@ def request_hospital_appointment(request):
                 "status": appointment.status
             }
         }, status=201)
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+@csrf_exempt
+def get_appointments_by_hospital(request, hospital_id):
+    if request.method != "GET":
+        return JsonResponse({"error": "Only GET method allowed"}, status=405)
+
+    try:
+        hospital = Hospital.objects(id=hospital_id).first()
+        if not hospital:
+            return JsonResponse({"error": "Hospital not found"}, status=404)
+
+        appointments = Appointment.objects(hospital=hospital).order_by("-date")
+
+        result = []
+        for appointment in appointments:
+            user = appointment.user
+            prediction = PredictionResult.objects(user=user).order_by("-created_at").first()
+
+            result.append({
+                "appointment_id": str(appointment.id),
+                "patient_name": getattr(user, "full_name", "N/A"),
+                "national_id": getattr(user, "national_id", "N/A"),
+                "email": getattr(user, "email", "N/A"),
+                "phone": getattr(user, "phone", "N/A"),
+                "diagnosis": getattr(prediction, "diagnosis", "Not available"),
+                "date": str(appointment.date),
+                "day": appointment.day,
+                "start_time": appointment.start_time,
+                "end_time": appointment.end_time,
+                "status": appointment.status
+            })
+
+        return JsonResponse({"appointments": result}, status=200)
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
