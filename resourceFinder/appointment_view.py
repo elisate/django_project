@@ -77,7 +77,6 @@ def request_hospital_appointment(request):
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
-
 @csrf_exempt
 def get_appointments_by_hospital(request, hospital_id):
     if request.method != "GET":
@@ -88,7 +87,17 @@ def get_appointments_by_hospital(request, hospital_id):
         if not hospital:
             return JsonResponse({"error": "Hospital not found"}, status=404)
 
-        appointments = Appointment.objects(hospital=hospital).order_by("-date")
+        # Pagination: 5 rows per page
+        page = int(request.GET.get("page", 1))
+        rows_per_page = 5
+        skip = (page - 1) * rows_per_page
+
+        # Query appointments
+        all_appointments = Appointment.objects(hospital=hospital).order_by("-date")
+        total_appointments = all_appointments.count()
+        total_pages = (total_appointments + rows_per_page - 1) // rows_per_page
+
+        appointments = all_appointments.skip(skip).limit(rows_per_page)
 
         result = []
         for appointment in appointments:
@@ -97,11 +106,12 @@ def get_appointments_by_hospital(request, hospital_id):
 
             result.append({
                 "appointment_id": str(appointment.id),
-                "patient_name": getattr(user, "full_name", "N/A"),
+                "firstname": getattr(user, "firstname", "N/A"),
+                "lastname": getattr(user, "lastname", "N/A"),
                 "national_id": getattr(user, "national_id", "N/A"),
                 "email": getattr(user, "email", "N/A"),
                 "phone": getattr(user, "phone", "N/A"),
-                "diagnosis": getattr(prediction, "diagnosis", "Not available"),
+                "diagnosis": getattr(prediction, "diagnosis", "Not available") if prediction else "Not available",
                 "date": str(appointment.date),
                 "day": appointment.day,
                 "start_time": appointment.start_time,
@@ -109,7 +119,15 @@ def get_appointments_by_hospital(request, hospital_id):
                 "status": appointment.status
             })
 
-        return JsonResponse({"appointments": result}, status=200)
+        return JsonResponse({
+            "appointments": result,
+            "pagination": {
+                "current_page": page,
+                "total_pages": total_pages,
+                "total_appointments": total_appointments,
+                "rows_per_page": rows_per_page
+            }
+        }, status=200)
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
