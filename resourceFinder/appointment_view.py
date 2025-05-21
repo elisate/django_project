@@ -7,7 +7,7 @@ from resourceFinder.medical_ai.hospitalModel import Hospital
 from resourceFinder.medical_ai.scheduleModel import HospitalSchedule
 from resourceFinder.medical_ai.PredictionResult_model import PredictionResult
 from resourceFinder.medical_ai.appointmentModel import Appointment
-from bson import ObjectId
+from bson.objectid import ObjectId, InvalidId
 @csrf_exempt
 def request_hospital_appointment(request):
     if request.method != "POST":
@@ -131,3 +131,47 @@ def get_appointments_by_hospital(request, hospital_id):
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+ 
+
+
+@csrf_exempt
+def get_appointments_by_user_id(request, user_id):
+    if request.method != "GET":
+        return JsonResponse({"error": "Only GET method is allowed"}, status=405)
+
+    try:
+        # Convert user_id to ObjectId
+        try:
+            user_object_id = ObjectId(user_id)
+        except InvalidId:
+            return JsonResponse({"error": "Invalid user ID format"}, status=400)
+
+        # Directly query appointments by user ObjectId
+        appointments = Appointment.objects(user=user_object_id).order_by("-date")
+
+        result = []
+        for appointment in appointments:
+            hospital_name = "Unknown Hospital"
+            try:
+                if appointment.hospital:
+                    hospital_name = appointment.hospital.hospital_name
+            except:
+                pass
+
+            result.append({
+                "appointment_id": str(appointment.id),
+                "hospital_name": hospital_name,
+                "day": appointment.day,
+                "date": str(appointment.date),
+                "start_time": appointment.start_time,
+                "end_time": appointment.end_time,
+                "status": appointment.status,
+                "created_at": appointment.created_at.isoformat(),
+                "prediction_id": str(appointment.prediction.id) if appointment.prediction else "N/A",
+                "user_id": str(user_object_id),
+            })
+
+        return JsonResponse({"appointments": result}, status=200)
+
+    except Exception as e:
+        return JsonResponse({"error": f"Internal server error: {str(e)}"}, status=500)

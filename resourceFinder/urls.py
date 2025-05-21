@@ -13,7 +13,9 @@ from resourceFinder.hospital_schedule_view import (create_or_update_hospital_sch
                                                    delete_schedule_slot,
                                                    get_hospital_schedule_by_name
                                                    )
-from resourceFinder.appointment_view import (request_hospital_appointment,get_appointments_by_hospital)
+from resourceFinder.appointment_view import (request_hospital_appointment,
+                                             get_appointments_by_hospital,
+                                             get_appointments_by_user_id)
 
 urlpatterns = [
     path("/resourceFinder",patient_predict),
@@ -30,7 +32,8 @@ urlpatterns = [
     path("/schedule/delete_slot",delete_schedule_slot),
     path("/schedule/getByHospitalName/<str:hospital_name>/",get_hospital_schedule_by_name),
     path("/Appointment/createRequest",request_hospital_appointment),
-    path("/Appointment/getAppointmentByHospId/<hospital_id>",get_appointments_by_hospital)
+    path("/Appointment/getAppointmentByHospId/<hospital_id>",get_appointments_by_hospital),
+    path("/Appointment/getAppointmentByUserId/<str:user_id>",get_appointments_by_user_id)
     
     
     
