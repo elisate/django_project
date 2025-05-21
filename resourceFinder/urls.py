@@ -17,31 +17,39 @@ from resourceFinder.appointment_view import (request_hospital_appointment,
                                              get_appointments_by_hospital,
                                              get_appointments_by_user_id,
                                              get_all_pending_appointments_by_hospital)
+from resourceFinder.contactView import createContact
 
 
 
 
 urlpatterns = [
-    path("/resourceFinder",patient_predict),
+    #------------------AUTHENTICATION----------------------
     path("/register",register_user),
     path("/login",login_user),
+    #------------------ARTIFICIAL INTELLIGENCE---------------
+    path("/resourceFinder",patient_predict),
     path("/liveResultPredicted",get_prediction_result),
     path("/liveResultPredicted/predictions/<str:prediction_id>/",get_prediction_by_id),
+    #----------------HOSPITAL------------------
     path("/hospitals/create",create_hospital),
+    #---------------DOCTOR------------
     path("/doctor/create",create_doctor),
     path("/doctor/getDoctorByHospitalId/<str:hospital_id>",get_doctors_by_hospital),
     path("/patient/create",create_patient),
-    path("/Appointment/getPatientByHospId/<hospital_id>",get_patients_by_hospital),
+    #----------------HOSPITAL SCHEDULE---------------
     path("/schedule/create",create_or_update_hospital_schedule),
     path('/schedule/get/<str:hospital_id>/',get_hospital_schedule),
     path("/schedule/update_day",update_schedule_slot),
     path("/schedule/delete_slot",delete_schedule_slot),
     path("/schedule/getByHospitalName/<str:hospital_name>/",get_hospital_schedule_by_name),
+    #--------------APPOINTMENT-------------------------
     path("/Appointment/createRequest",request_hospital_appointment),
     path("/Appointment/getAppointmentByHospId/<hospital_id>",get_appointments_by_hospital),
     path("/Appointment/getAppointmentByUserId/<str:user_id>",get_appointments_by_user_id),
-    path("/appointment/getAllPendingAppointmentsByHospId/<str:hospital_id>",get_all_pending_appointments_by_hospital)
-    
+    path("/Appointment/getPatientByHospId/<hospital_id>",get_patients_by_hospital),
+    path("/appointment/getAllPendingAppointmentsByHospId/<str:hospital_id>",get_all_pending_appointments_by_hospital),
+    #---------------------------------- CONTACT-------------
+    path("/contact/createContact",createContact),
 
     
 ]
