@@ -140,14 +140,35 @@ def get_appointments_by_user_id(request, user_id):
         return JsonResponse({"error": "Only GET method is allowed"}, status=405)
 
     try:
-        # Convert user_id to ObjectId
+        # Validate user_id format
         try:
             user_object_id = ObjectId(user_id)
         except InvalidId:
             return JsonResponse({"error": "Invalid user ID format"}, status=400)
 
-        # Directly query appointments by user ObjectId
-        appointments = Appointment.objects(user=user_object_id).order_by("-date")
+        # Pagination parameters from query params
+        try:
+            page = int(request.GET.get("page", 1))
+            if page < 1:
+                page = 1
+        except ValueError:
+            page = 1
+
+        page_size = 5  # fixed page size
+
+        # Calculate skip count
+        skip = (page - 1) * page_size
+
+        # Query total count for pagination info
+        total_appointments = Appointment.objects(user=user_object_id).count()
+
+        # Query appointments with skip and limit for pagination
+        appointments = (
+            Appointment.objects(user=user_object_id)
+            .order_by("-date")
+            .skip(skip)
+            .limit(page_size)
+        )
 
         result = []
         for appointment in appointments:
@@ -155,7 +176,7 @@ def get_appointments_by_user_id(request, user_id):
             try:
                 if appointment.hospital:
                     hospital_name = appointment.hospital.hospital_name
-            except:
+            except Exception:
                 pass
 
             result.append({
@@ -171,7 +192,15 @@ def get_appointments_by_user_id(request, user_id):
                 "user_id": str(user_object_id),
             })
 
-        return JsonResponse({"appointments": result}, status=200)
+        return JsonResponse({
+            "appointments": result,
+            "pagination": {
+                "current_page": page,
+                "page_size": page_size,
+                "total_appointments": total_appointments,
+                "total_pages": (total_appointments + page_size - 1) // page_size,
+            }
+        }, status=200)
 
     except Exception as e:
         return JsonResponse({"error": f"Internal server error: {str(e)}"}, status=500)
