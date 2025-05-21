@@ -7,6 +7,8 @@ from resourceFinder.medical_ai.patientModel import Patient
 from resourceFinder.medical_ai.hospitalModel import Hospital
 from datetime import datetime
 import jwt
+from bson import ObjectId
+from resourceFinder.utility.cloudinary_helper import upload_image_to_cloudinary  # ✅ Use helper
 
 @csrf_exempt
 def create_patient(request):
@@ -27,14 +29,11 @@ def create_patient(request):
             email = data.get('email', '').strip().lower()
             password = data.get('password', '').strip()
 
-            # Prevent duplicate email
             if User.objects(email__iexact=email).first():
                 return JsonResponse({'error': 'User already exists with this email'}, status=400)
 
-            # Hash the password
             hashed_password = make_password(password)
 
-            # Create User
             user = User(
                 firstname=data.get('firstname'),
                 lastname=data.get('lastname'),
@@ -44,7 +43,9 @@ def create_patient(request):
             )
             user.save()
 
-            # Create Patient
+            # ✅ Use Cloudinary helper to upload image
+            image_url = upload_image_to_cloudinary(image)
+
             patient = Patient(
                 user=user,
                 national_id=data.get('national_id'),
@@ -55,10 +56,9 @@ def create_patient(request):
                 phone=data.get('phone'),
                 height_cm=data.get('height'),
                 weight_kg=data.get('weight'),
-                profile_image=image
+                profile_image=image_url
             )
 
-            # Optional hospital assignment
             hospital_id = data.get('hospital_id')
             if hospital_id:
                 hospital = Hospital.objects(id=hospital_id).first()
@@ -68,7 +68,6 @@ def create_patient(request):
 
             patient.save()
 
-            # Generate JWT token
             payload = {
                 "user_id": str(user.id),
                 "email": user.email,
@@ -76,10 +75,7 @@ def create_patient(request):
                 "exp": datetime.utcnow() + settings.JWT_ACCESS_TOKEN_LIFETIME,
                 "iat": datetime.utcnow()
             }
-            try:
-                token = jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
-            except Exception as e:
-                return JsonResponse({'error': 'Failed to generate token', 'details': str(e)}, status=500)
+            token = jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
             return JsonResponse({
                 'message': 'Patient created successfully',
@@ -98,3 +94,39 @@ def create_patient(request):
             return JsonResponse({'error': str(e)}, status=500)
 
     return JsonResponse({'error': 'Only POST method is allowed'}, status=405)
+
+
+
+@csrf_exempt
+def get_patients_by_hospital(request, hospital_id):
+    if request.method == 'GET':
+        try:
+            # Validate hospital_id
+            if not ObjectId.is_valid(hospital_id):
+                return JsonResponse({'error': 'Invalid hospital ID'}, status=400)
+
+            hospital = Hospital.objects(id=hospital_id).first()
+            if not hospital:
+                return JsonResponse({'error': 'Hospital not found'}, status=404)
+
+            patients = Patient.objects(hospital=hospital)
+
+            patient_list = []
+            for patient in patients:
+                patient_list.append({
+                    'patient_id': str(patient.id),
+                    'firstname': patient.firstname,
+                    'lastname': patient.lastname,
+                    'email': patient.user.email if patient.user else None,
+                    'phone': patient.phone,
+                    'age': patient.age,
+                    'gender': patient.gender,
+                    'profile_image': patient.profile_image,
+                })
+
+            return JsonResponse({'patients': patient_list}, status=200)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return JsonResponse({'error': 'Only GET method is allowed'}, status=405)

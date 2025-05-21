@@ -7,7 +7,7 @@ from resourceFinder.hospitalView import (
     create_hospital
 )
 from resourceFinder.doctorView import (create_doctor,get_doctors_by_hospital)
-from resourceFinder.patientView import create_patient
+from resourceFinder.patientView import (create_patient,get_patients_by_hospital)
 from resourceFinder.hospital_schedule_view import (create_or_update_hospital_schedule,
                                                    get_hospital_schedule,update_schedule_slot,
                                                    delete_schedule_slot,
@@ -15,7 +15,8 @@ from resourceFinder.hospital_schedule_view import (create_or_update_hospital_sch
                                                    )
 from resourceFinder.appointment_view import (request_hospital_appointment,
                                              get_appointments_by_hospital,
-                                             get_appointments_by_user_id)
+                                             get_appointments_by_user_id,
+                                             get_all_pending_appointments_by_hospital)
 
 
 
@@ -30,6 +31,7 @@ urlpatterns = [
     path("/doctor/create",create_doctor),
     path("/doctor/getDoctorByHospitalId/<str:hospital_id>",get_doctors_by_hospital),
     path("/patient/create",create_patient),
+    path("/Appointment/getPatientByHospId/<hospital_id>",get_patients_by_hospital),
     path("/schedule/create",create_or_update_hospital_schedule),
     path('/schedule/get/<str:hospital_id>/',get_hospital_schedule),
     path("/schedule/update_day",update_schedule_slot),
@@ -38,6 +40,7 @@ urlpatterns = [
     path("/Appointment/createRequest",request_hospital_appointment),
     path("/Appointment/getAppointmentByHospId/<hospital_id>",get_appointments_by_hospital),
     path("/Appointment/getAppointmentByUserId/<str:user_id>",get_appointments_by_user_id),
+    path("/appointment/getAllPendingAppointmentsByHospId/<str:hospital_id>",get_all_pending_appointments_by_hospital)
     
 
     

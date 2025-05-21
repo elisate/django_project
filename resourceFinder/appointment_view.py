@@ -204,3 +204,46 @@ def get_appointments_by_user_id(request, user_id):
 
     except Exception as e:
         return JsonResponse({"error": f"Internal server error: {str(e)}"}, status=500)
+    
+
+
+@csrf_exempt
+def get_all_pending_appointments_by_hospital(request, hospital_id):
+    if request.method != "GET":
+        return JsonResponse({"error": "Only GET method allowed"}, status=405)
+
+    try:
+        hospital = Hospital.objects(id=hospital_id).first()
+        if not hospital:
+            return JsonResponse({"error": "Hospital not found"}, status=404)
+
+        # Get all appointments with status 'pending'
+        pending_appointments = Appointment.objects(
+            hospital=hospital,
+            status="pending"
+        ).order_by("-date")
+
+        result = []
+        for appointment in pending_appointments:
+            user = appointment.user
+            prediction = PredictionResult.objects(user=user).order_by("-created_at").first()
+
+            result.append({
+                "appointment_id": str(appointment.id),
+                "firstname": getattr(user, "firstname", "N/A"),
+                "lastname": getattr(user, "lastname", "N/A"),
+                "national_id": getattr(user, "national_id", "N/A"),
+                "email": getattr(user, "email", "N/A"),
+                "phone": getattr(user, "phone", "N/A"),
+                "diagnosis": getattr(prediction, "diagnosis", "Not available") if prediction else "Not available",
+                "date": str(appointment.date),
+                "day": appointment.day,
+                "start_time": appointment.start_time,
+                "end_time": appointment.end_time,
+                "status": appointment.status
+            })
+
+        return JsonResponse({"appointments": result}, status=200)
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)

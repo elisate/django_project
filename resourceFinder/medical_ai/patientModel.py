@@ -5,7 +5,7 @@ from resourceFinder.medical_ai.hospitalModel import Hospital
 class Patient(Document):
     user = ReferenceField(User, required=True, unique=True)
     national_id = StringField()
-    profile_image = FileField()
+    profile_image = StringField()
     age = StringField()
     gender = StringField(choices=["Male", "Female", "Other"])
     phone = StringField()
