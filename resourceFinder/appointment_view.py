@@ -256,10 +256,22 @@ def get_appointment_by_id(request, appointment_id):
     if request.method == 'GET':
         try:
             appointment = Appointment.objects.get(id=appointment_id)
+            user = appointment.user
+
+            user_data = {
+                "id": str(user.id),
+                "firstname": user.firstname,
+                "lastname": user.lastname,
+                "hospitalName": user.hospitalName,
+                "phone": user.phone,
+                "email": user.email,
+                "userRole": user.userRole,
+            }
+
             return JsonResponse({
                 "id": str(appointment.id),
-                "user": str(appointment.user.id),
-                "hospital": appointment.hospital.name,
+                "user": user_data,
+                "hospital": appointment.hospital.hospital_name,
                 "prediction": str(appointment.prediction.id),
                 "day": appointment.day,
                 "date": appointment.date.strftime("%Y-%m-%d"),
@@ -272,6 +284,7 @@ def get_appointment_by_id(request, appointment_id):
             return JsonResponse({"error": "Appointment not found"}, status=404)
 
     return JsonResponse({"error": "Invalid request method"}, status=405)
+
 
 @csrf_exempt
 def update_appointment_status(request, appointment_id):

@@ -13,6 +13,7 @@ class User(Document):
     firstname = StringField(required=False)
     lastname = StringField(required=False)
     hospitalName = StringField(required=False)
+    phone = StringField(required=False)
     email = StringField(required=True, unique=True)
     password = StringField(required=True)
     userRole = StringField(
