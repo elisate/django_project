@@ -133,3 +133,37 @@ def get_doctors_by_hospital(request, hospital_id):
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+    
+
+@csrf_exempt
+def get_doctor_by_id(request, doctor_id):
+    try:
+        if request.method != 'GET':
+            return JsonResponse({'error': 'Only GET method is allowed'}, status=405)
+
+        if not ObjectId.is_valid(doctor_id):
+            return JsonResponse({'error': 'Invalid doctor ID'}, status=400)
+
+        doctor = Doctor.objects(id=ObjectId(doctor_id)).first()
+        if not doctor:
+            return JsonResponse({'error': 'Doctor not found'}, status=404)
+
+        return JsonResponse({
+            'doctor_id': str(doctor.id),
+            'firstname': doctor.user.firstname if doctor.user else "",
+            'lastname': doctor.user.lastname if doctor.user else "",
+            'full_name': doctor.full_name,
+            'age': doctor.age,
+            'gender': doctor.gender,
+            'phone': doctor.phone,
+            'email': doctor.email,
+            'notes': doctor.notes,
+            'specialty': doctor.specialty,
+            'certifications': doctor.certifications,
+            'available_times': doctor.available_times,
+            'profile_image_url': doctor.profile_image_url or ""
+        }, status=200)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+

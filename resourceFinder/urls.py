@@ -6,7 +6,7 @@ from .Pridiction_Res_view import (get_prediction_result,get_prediction_by_id)
 from resourceFinder.hospitalView import (
     create_hospital
 )
-from resourceFinder.doctorView import (create_doctor,get_doctors_by_hospital)
+from resourceFinder.doctorView import (create_doctor,get_doctors_by_hospital,get_doctor_by_id)
 from resourceFinder.patientView import (create_patient,get_patients_by_hospital)
 from resourceFinder.hospital_schedule_view import (create_or_update_hospital_schedule,
                                                    get_hospital_schedule,update_schedule_slot,
@@ -35,6 +35,7 @@ urlpatterns = [
     path("/hospitals/create",create_hospital),
     #---------------DOCTOR------------
     path("/doctor/create",create_doctor),
+    path("/doctor/getDoctorById/<str:doctor_id>",get_doctor_by_id),
     path("/doctor/getDoctorByHospitalId/<str:hospital_id>",get_doctors_by_hospital),
     path("/patient/create",create_patient),
     #----------------HOSPITAL SCHEDULE---------------
