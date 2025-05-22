@@ -30,32 +30,55 @@ def createContact(request):
         )
         contact.save()
 
-        # Confirmation email content (tailwind style: blue-500, black, white)
+        # Confirmation email content
         thank_you_html = f"""
-<div style="background-color:#ffffff; color:#000000; padding:20px; font-family:Arial, sans-serif;">
-    <h2 style="color:#3B82F6;">Thank You for Reaching Out to MediConnect AI-RWA-CST </h2>
-    <p>Dear <strong>{escape(full_name)}</strong>,</p>
+        <div style="font-family: Arial, sans-serif; color: #333;">
+          <!-- Header -->
+          <div style="background-color: #3B82F6; padding: 20px; color: white; text-align: center;">
+            <h1 style="margin: 0;">Thank You for Contacting MediConnect AI-RWA-CST</h1>
+          </div>
 
-    <p>Thank you for contacting MediConnectAI-RWA-CST. We truly appreciate you taking the time to share your thoughts with us.</p>
-    
-    <p>Your message has been received, and our dedicated support team is already reviewing it. We strive to respond as quickly and helpfully as possible, and you can expect a reply shortly.</p>
+          <!-- Body -->
+          <div style="padding: 20px;">
+            <p>Dear <strong>{escape(full_name)}</strong>,</p>
 
-    <p>If your inquiry is urgent, please feel free to call our support line directly at <strong>+250 787 239 952</strong>.</p>
+            <p>
+              Thank you for reaching out to <strong>MediConnect AI-RWA-CST</strong>. 
+              We appreciate your time and effort in contacting us.
+            </p>
 
-    <p style="margin-top:20px;">In the meantime, thank you again for trusting MediAI-RWA-CST. We’re here to support you.</p>
+            <p>
+              Your message has been successfully received and is currently being reviewed by our support team.
+              We strive to respond promptly and address your inquiry thoroughly.
+            </p>
 
-    <p style="margin-top:30px;">Warm regards,<br/>
-    <strong>The MediConnect AI-RWA-CST Support Team</strong></p>
-</div>
-"""
+            <p>
+              If your request is urgent, please don’t hesitate to call us directly at 
+              <strong style="color: #3B82F6;">+250 787 239 952</strong>.
+            </p>
 
+            <p style="margin-top: 20px;">
+              Thank you once again for connecting with us. We’re here to help you.
+            </p>
 
+            <p style="margin-top: 30px;">
+              Best regards,<br>
+              <strong>The MediConnect AI-RWA-CST Support Team</strong>
+            </p>
+          </div>
+
+          <!-- Footer -->
+          <div style="background-color: #f3f4f6; padding: 10px; text-align: center; font-size: 12px; color: #888;">
+            © 2025 MediConnect AI-RWA-CST. All rights reserved.
+          </div>
+        </div>
+        """
 
         # Send confirmation email
         send_email(
             to_email=email,
             subject="Thank You for Contacting Mediconnect AI-RWA",
-            message=thank_you_html  # Make sure your helper accepts 'message' or rename this to 'body'
+            message=thank_you_html
         )
 
         return JsonResponse({"message": "Contact saved and email sent successfully."}, status=201)
