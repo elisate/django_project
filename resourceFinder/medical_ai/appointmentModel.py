@@ -20,7 +20,7 @@ class Appointment(Document):
     end_time = StringField(required=True)    # e.g., "20:59"
 
     status = StringField(default="pending", choices=[
-        "pending", "approved", "cancelled", "completed"
+        "pending", "approved", "Rejected", "completed"
     ])  # Default status is pending; can be updated later
 
     created_at = DateTimeField(default=datetime.datetime.utcnow)  # When the appointment was made

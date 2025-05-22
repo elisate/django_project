@@ -7,6 +7,7 @@ class UserRole(str, Enum):
     PATIENT = "patient"
     DOCTOR = "doctor"
     HOSPITAL = "hospital"
+    SUPER_ADMIN="superAdmin"
 
 class User(Document):
     firstname = StringField(required=False)

@@ -8,6 +8,7 @@ from resourceFinder.medical_ai.scheduleModel import HospitalSchedule
 from resourceFinder.medical_ai.PredictionResult_model import PredictionResult
 from resourceFinder.medical_ai.appointmentModel import Appointment
 from bson.objectid import ObjectId, InvalidId
+from mongoengine.errors import DoesNotExist
 @csrf_exempt
 def request_hospital_appointment(request):
     if request.method != "POST":
@@ -247,3 +248,56 @@ def get_all_pending_appointments_by_hospital(request, hospital_id):
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+    
+
+@csrf_exempt
+def get_appointment_by_id(request, appointment_id):
+    if request.method == 'GET':
+        try:
+            appointment = Appointment.objects.get(id=appointment_id)
+            return JsonResponse({
+                "id": str(appointment.id),
+                "user": str(appointment.user.id),
+                "hospital": appointment.hospital.name,
+                "prediction": str(appointment.prediction.id),
+                "day": appointment.day,
+                "date": appointment.date.strftime("%Y-%m-%d"),
+                "start_time": appointment.start_time,
+                "end_time": appointment.end_time,
+                "status": appointment.status,
+                "created_at": appointment.created_at.isoformat(),
+            }, status=200)
+        except DoesNotExist:
+            return JsonResponse({"error": "Appointment not found"}, status=404)
+
+    return JsonResponse({"error": "Invalid request method"}, status=405)
+
+@csrf_exempt
+def update_appointment_status(request, appointment_id):
+    if request.method == 'PUT':
+        try:
+            body_unicode = request.body.decode('utf-8')
+            body = json.loads(body_unicode)
+            new_status = body.get('status', '').lower()  # normalize to lowercase
+
+            valid_statuses = ["pending", "approved", "rejected", "completed"]
+
+            if new_status not in valid_statuses:
+                return JsonResponse({"error": f"Invalid status. Must be one of {valid_statuses}"}, status=400)
+
+            appointment = Appointment.objects.get(id=appointment_id)
+            appointment.status = new_status  # save as lowercase
+            appointment.save()
+
+            return JsonResponse({
+                "message": f"Appointment status updated to {new_status}",
+                "appointment_id": str(appointment.id),
+                "status": appointment.status
+            }, status=200)
+
+        except DoesNotExist:
+            return JsonResponse({"error": "Appointment not found"}, status=404)
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON format"}, status=400)
+
+    return JsonResponse({"error": "Invalid request method"}, status=405)
