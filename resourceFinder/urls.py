@@ -19,7 +19,8 @@ from resourceFinder.appointment_view import (request_hospital_appointment,
                                              get_all_pending_appointments_by_hospital,
                                              update_appointment_status,
                                              get_appointment_by_id,
-                                             assign_doctor_to_appointment)
+                                             assign_doctor_to_appointment,
+                                             get_appointments_by_doctor_email)
 from resourceFinder.contactView import createContact
 
 
@@ -55,6 +56,7 @@ urlpatterns = [
     path("/appointment/getAllPendingAppointmentsByHospId/<str:hospital_id>",get_all_pending_appointments_by_hospital),
     path('/appointment/update-status/<str:appointment_id>',update_appointment_status),
     path('/appointment/assignToDoctor-status',assign_doctor_to_appointment),
+    path('/appointment/by-doctor-email/<str:email>/', get_appointments_by_doctor_email),
 
     #---------------------------------- CONTACT-------------
     path("/contact/createContact",createContact),

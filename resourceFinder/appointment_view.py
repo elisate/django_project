@@ -1,4 +1,5 @@
 from django.http import JsonResponse
+import traceback
 from django.views.decorators.csrf import csrf_exempt
 import json
 from datetime import datetime, timedelta
@@ -11,6 +12,7 @@ from bson.objectid import ObjectId, InvalidId
 from mongoengine.errors import DoesNotExist
 from resourceFinder.utility.email_sender import send_email
 from rest_framework.decorators import api_view
+from django.utils.dateformat import format as date_format
 
 @csrf_exempt
 def request_hospital_appointment(request):
@@ -457,3 +459,37 @@ def assign_doctor_to_appointment(request):
         return JsonResponse({"error": "Invalid JSON format."}, status=400)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
+
+@api_view(['GET'])
+def get_appointments_by_doctor_email(request, email):
+    try:
+        # Lookup doctor by email
+        doctor = User.objects.get(email__iexact=email, userRole="doctor")
+    except User.DoesNotExist:
+        return JsonResponse({"error": "Doctor not found."}, status=404)
+
+    # Now query appointments assigned to that doctor
+    appointments = Appointment.objects.filter(doctor=doctor).order_by('-date')
+
+    result = []
+    for appt in appointments:
+        result.append({
+            "appointment_id": str(appt.id),
+            "date": str(appt.date),
+            "day": appt.day,
+            "start_time": appt.start_time,
+            "end_time": appt.end_time,
+            "status": appt.status,
+            "created_at": appt.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+            "patient": {
+                "name": f"{appt.user.firstname} {appt.user.lastname}",
+                "email": appt.user.email,
+                "phone": getattr(appt.user, 'phone', 'N/A'),
+                "role": appt.user.userRole
+            },
+            "hospital": appt.hospital.hospital_name if appt.hospital else 'N/A',
+            "prediction_id": str(appt.prediction.id) if appt.prediction else 'N/A'
+        })
+
+    return JsonResponse({"appointments": result}, status=200)
