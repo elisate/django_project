@@ -10,6 +10,8 @@ from resourceFinder.medical_ai.appointmentModel import Appointment
 from bson.objectid import ObjectId, InvalidId
 from mongoengine.errors import DoesNotExist
 from resourceFinder.utility.email_sender import send_email
+from rest_framework.decorators import api_view
+
 @csrf_exempt
 def request_hospital_appointment(request):
     if request.method != "POST":
@@ -357,3 +359,101 @@ def update_appointment_status(request, appointment_id):
             return JsonResponse({"error": "Invalid JSON format"}, status=400)
 
     return JsonResponse({"error": "Invalid request method"}, status=405)
+
+
+@csrf_exempt
+@api_view(['POST'])
+def assign_doctor_to_appointment(request):
+    try:
+        body = json.loads(request.body.decode('utf-8'))
+        appointment_id = body.get('appointment_id')
+        doctor_name = body.get('doctor_name')
+        doctor_email_input = body.get('Email', '').strip()
+
+        if not appointment_id or not doctor_name:
+            return JsonResponse({"error": "Both appointment_id and doctor_name are required."}, status=400)
+
+        # Get appointment
+        try:
+            appointment = Appointment.objects.get(id=appointment_id)
+        except Appointment.DoesNotExist:
+            return JsonResponse({"error": "Appointment not found."}, status=404)
+
+        if appointment.status.lower() != "approved":
+            return JsonResponse({"error": "Only appointments with 'approved' status can be assigned."}, status=400)
+
+        # Parse doctor name
+        try:
+            first_name, last_name = doctor_name.strip().split(" ", 1)
+        except ValueError:
+            return JsonResponse({"error": "Doctor name must be in 'First Last' format."}, status=400)
+
+        # Find doctor by name
+        try:
+            doctor = User.objects.get(firstname__iexact=first_name, lastname__iexact=last_name, userRole="doctor")
+        except User.DoesNotExist:
+            return JsonResponse({"error": "Doctor not found."}, status=404)
+
+        # Assign doctor to appointment
+        appointment.doctor = doctor
+        appointment.status = "assigned"
+        appointment.save()
+
+        # Email to doctor
+        doctor_subject = "New Appointment Assigned to You"
+        doctor_message = f"""
+        <div style="font-family: Arial, sans-serif; color: #333;">
+          <div style="background-color: #10B981; padding: 20px; color: white; text-align: center;">
+            <h1 style="margin: 0;">New Appointment Assigned</h1>
+          </div>
+          <div style="padding: 20px;">
+            <p>Dear <strong>Dr. {doctor.firstname} {doctor.lastname}</strong>,</p>
+            <p>You have been assigned an appointment with patient <strong>{appointment.user.firstname} {appointment.user.lastname}</strong>.</p>
+            <p><strong>Date:</strong> {appointment.date} ({appointment.day})<br>
+            <strong>Time:</strong> {appointment.start_time} - {appointment.end_time}<br>
+            <strong>Hospital:</strong> {appointment.hospital.hospital_name if appointment.hospital else 'N/A'}</p>
+            <p>Please check your dashboard for full details.</p>
+            <p style="margin-top: 30px;">Best regards,<br><strong>MediConnect AI-RWA-CST Team</strong></p>
+          </div>
+          <div style="background-color: #f3f4f6; padding: 10px; text-align: center; font-size: 12px; color: #888;">
+            © 2025 MediConnect AI-RWA-CST. All rights reserved.
+          </div>
+        </div>
+        """
+        send_email(to_email=doctor.email, subject=doctor_subject, message=doctor_message)
+
+        # Email to patient
+        patient_subject = "Appointment Assigned to Doctor"
+        patient_message = f"""
+        <div style="font-family: Arial, sans-serif; color: #333;">
+          <div style="background-color: #3B82F6; padding: 20px; color: white; text-align: center;">
+            <h1 style="margin: 0;">Doctor Assigned</h1>
+          </div>
+          <div style="padding: 20px;">
+            <p>Dear <strong>{appointment.user.firstname} {appointment.user.lastname}</strong>,</p>
+            <p>Your appointment has been assigned to <strong>Dr. {doctor.firstname} {doctor.lastname}</strong> (<strong>{doctor.email}</strong>).</p>
+            <p><strong>Date:</strong> {appointment.date} ({appointment.day})<br>
+            <strong>Time:</strong> {appointment.start_time} - {appointment.end_time}<br>
+            <strong>Hospital:</strong> {appointment.hospital.hospital_name if appointment.hospital else 'N/A'}</p>
+            <p>Thank you for using MediConnect.</p>
+            <p style="margin-top: 30px;">Best regards,<br><strong>MediConnect AI-RWA-CST Team</strong></p>
+          </div>
+          <div style="background-color: #f3f4f6; padding: 10px; text-align: center; font-size: 12px; color: #888;">
+            © 2025 MediConnect AI-RWA-CST. All rights reserved.
+          </div>
+        </div>
+        """
+        send_email(to_email=appointment.user.email, subject=patient_subject, message=patient_message)
+
+        return JsonResponse({
+            "message": "Doctor successfully assigned and notifications sent.",
+            "appointment_id": str(appointment.id),
+            "doctor_name": f"{doctor.firstname} {doctor.lastname}",
+            "doctor_email": doctor.email,
+            "status": appointment.status
+        }, status=200)
+
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON format."}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
