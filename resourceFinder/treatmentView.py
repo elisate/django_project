@@ -4,6 +4,7 @@ import json
 from resourceFinder.medical_ai.appointmentModel import Appointment
 from resourceFinder.medical_ai.treatmentModel import Treatment
 from resourceFinder.medical_ai.patientModel import Patient
+from resourceFinder.utility.email_sender import send_email  # Email utility
 
 @csrf_exempt
 def create_treatment(request):
@@ -43,7 +44,55 @@ def create_treatment(request):
 
             patient.save()
 
-            return JsonResponse({"message": "Treatment created and linked to patient successfully."})
+            # ✅ Send Styled Email to Appointment Owner
+            user = appointment.user
+            hospital = appointment.hospital  # Assuming this is present
+            symptoms = ", ".join(data.get('symptoms', [])) if isinstance(data.get('symptoms'), list) else data.get('symptoms')
+
+            subject = "Your Consultation Summary"
+
+            message = f"""
+            <div style="font-family: Arial, sans-serif; color: #333;">
+              <div style="background-color: #3B82F6; padding: 20px; color: white; text-align: center;">
+                <h1 style="margin: 0;">Consultation Summary</h1>
+              </div>
+
+              <div style="padding: 20px;">
+                <p>Dear <strong>{user.firstname} {user.lastname}</strong>,</p>
+
+                <p>
+                  Thank you for attending your consultation at <strong>{hospital.hospital_name}</strong> on 
+                  <strong>{appointment.date} ({appointment.day})</strong> from 
+                  <strong>{appointment.start_time}</strong> to <strong>{appointment.end_time}</strong>.
+                </p>
+
+                <p>Below is a summary of your consultation:</p>
+
+                <ul style="line-height: 1.6;">
+                  
+                  <li><strong>Symptoms:</strong> {symptoms}</li>
+                  <li><strong>Diagnosis:</strong> {treatment.diagnosis}</li>
+                  <li><strong>Prescription:</strong> {treatment.prescription}</li>
+                  <li><strong>Additional Notes:</strong> {treatment.notes or "N/A"}</li>
+                </ul>
+
+                <p>
+                  If you have any follow-up concerns or questions, please feel free to reach out to us.
+                </p>
+                <p>Contact:+250 787 239 952<p>
+                <p style="margin-top: 30px;">Best regards,<br><strong>MediConnect AI-RWA-CST Team</strong></p>
+              </div>
+
+              <div style="background-color: #f3f4f6; padding: 10px; text-align: center; font-size: 12px; color: #888;">
+                © 2025 MediConnect AI-RWA-CST. All rights reserved.
+              </div>
+            </div>
+            """
+
+            # Send as HTML
+            send_email(to_email=user.email, subject=subject, message=message)
+
+            return JsonResponse({"message": "Treatment created and email sent successfully."})
 
         except Appointment.DoesNotExist:
             return JsonResponse({"error": "Appointment not found."}, status=404)

@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 import jwt
 from django.conf import settings
 
-def generate_jwt_token(user, extra_claims=None, lifetime_minutes=60):
+def generate_jwt_token(user, extra_claims=None, lifetime_minutes=500):
     payload = {
         "user_id": str(user.id),
         "email": user.email,
