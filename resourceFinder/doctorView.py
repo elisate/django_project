@@ -11,7 +11,7 @@ from resourceFinder.medical_ai.doctorModel import Doctor
 from resourceFinder.medical_ai.hospitalModel import Hospital
 
 from resourceFinder.utility.cloudinary_helper import upload_image_to_cloudinary  # import your helper
-
+from resourceFinder.utility.jwt_utils import  generate_jwt_token
 
 @csrf_exempt
 def create_doctor(request):
@@ -76,14 +76,7 @@ def create_doctor(request):
         else:
             doctor.save()
 
-        payload = {
-            "user_id": str(user.id),
-            "email": user.email,
-            "userRole": user.userRole,
-            "exp": datetime.utcnow() + settings.JWT_ACCESS_TOKEN_LIFETIME,
-            "iat": datetime.utcnow()
-        }
-        token = jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+        token = generate_jwt_token(user),
 
         return JsonResponse({
             'message': 'Doctor created successfully',

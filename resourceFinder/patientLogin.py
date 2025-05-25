@@ -7,7 +7,7 @@ from django.conf import settings
 import json
 import jwt
 from datetime import datetime
-
+from resourceFinder.utility.jwt_utils import generate_jwt_token
 @csrf_exempt
 def login_user(request):
     if request.method == "POST":
@@ -35,7 +35,7 @@ def login_user(request):
                 "iat": datetime.utcnow()
             }
 
-            token = jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+            token = generate_jwt_token(user)
 
             # Get hospital ID if the user is a hospital
             hospital_id = None

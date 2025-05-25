@@ -23,5 +23,5 @@ class User(Document):
 
     # Lazy import of Patient when it's actually needed
     def get_patient(self):
-        from resourceFinder.medical_ai.models import Patient  # Lazy import to avoid circular import
+        from resourceFinder.medical_ai.patientModel import Patient  # Lazy import to avoid circular import
         return Patient.objects(user=self).first()

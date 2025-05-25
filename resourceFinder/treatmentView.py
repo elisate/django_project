@@ -1,48 +1,59 @@
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-
-from mongoengine.errors import DoesNotExist
-
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+import json
 from resourceFinder.medical_ai.appointmentModel import Appointment
+from resourceFinder.medical_ai.treatmentModel import Treatment
 from resourceFinder.medical_ai.patientModel import Patient
-from resourceFinder.medical_ai.treatmentMondel import Treatment
+from resourceFinder.medical_ai.userModel import User
 
-@api_view(["POST"])
-@permission_classes([IsAuthenticated])
-def save_treatment(request):
-    try:
-        data = request.data
-        appointment = Appointment.objects.get(id=data["appointment_id"])
+@csrf_exempt
+def create_treatment(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
 
-        if appointment.doctor.id != request.user.id:
-            return Response({"error": "Unauthorized: not assigned to this doctor."}, status=403)
+            # 1. Fetch appointment
+            appointment = Appointment.objects.get(id=data['appointment_id'])
 
-        # Avoid duplicate treatment
-        if Treatment.objects(appointment=appointment).first():
-            return Response({"error": "Treatment already recorded."}, status=400)
+            # 2. Get doctor (from appointment or request)
+            doctor = appointment.doctor or request.user
 
-        treatment = Treatment.objects.create(
-            doctor=request.user,
-            appointment=appointment,
-            symptoms=data["symptoms"],
-            diagnosis=data["diagnosis"],
-            prescription=data.get("prescription", ""),
-            notes=data.get("notes", "")
-        )
+            # 3. Get or create patient linked to appointment.user
+            patient = Patient.objects(user=appointment.user).first()
+            if not patient:
+                # Attempt auto-creation using user data
+                user = appointment.user
+                patient = Patient.objects.create(
+                    user=user,
+                    firstname=user.firstname,
+                    lastname=user.lastname,
+                    gender="Other",  # Default gender or use user.gender if available
+                    phone="N/A"
+                )
 
-        # Mark appointment as completed
-        appointment.status = "completed"
-        appointment.save()
+            # 4. Create treatment
+            treatment = Treatment(
+                doctor=doctor,
+                patient=patient,
+                appointment=appointment,
+                symptoms=data.get('symptoms', ''),
+                diagnosis=data['diagnosis'],
+                prescription=data['prescription'],
+                notes=data.get('notes', '')
+            )
+            treatment.save()
 
-        # Update patient ongoing treatments
-        patient = Patient.objects.get(user=appointment.user)
-        patient.ongoing_treatments.append(data["diagnosis"])
-        patient.save()
+            # 5. Update patient's ongoing treatments (optional)
+            if treatment.diagnosis and treatment.diagnosis not in patient.ongoing_treatments:
+                patient.ongoing_treatments.append(treatment.diagnosis)
+                patient.save()
 
-        return Response({"message": "Treatment saved successfully."}, status=200)
+            return JsonResponse({"message": "Treatment recorded and patient updated successfully."})
 
-    except DoesNotExist:
-        return Response({"error": "Appointment or patient not found."}, status=404)
-    except Exception as e:
-        return Response({"error": str(e)}, status=500)
+        except Appointment.DoesNotExist:
+            return JsonResponse({"error": "Appointment not found."}, status=404)
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse({"error": "Invalid HTTP method"}, status=405)
