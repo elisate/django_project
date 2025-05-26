@@ -22,9 +22,9 @@ from resourceFinder.appointment_view import (request_hospital_appointment,
                                              assign_doctor_to_appointment,
                                              get_appointments_by_doctor_email)
 from resourceFinder.contactView import createContact
-
 from resourceFinder.treatmentView import create_treatment
 
+from resourceFinder.specialViews.patientTreatedByDoctor import patients_and_treatments_by_doctor
 
 urlpatterns = [
     #------------------AUTHENTICATION----------------------
@@ -42,6 +42,8 @@ urlpatterns = [
     path("/doctor/getDoctorByHospitalId/<str:hospital_id>",get_doctors_by_hospital),
     path("/patient/create",create_patient),
     path("/doctor/treating",create_treatment),
+    #-----------------SPECIAL DOCTOR END POINT------------------------
+    path("/doctor/patientTreated/<str:doctor_id>",patients_and_treatments_by_doctor),
     #----------------HOSPITAL SCHEDULE---------------
     path("/schedule/create",create_or_update_hospital_schedule),
     path('/schedule/get/<str:hospital_id>/',get_hospital_schedule),
@@ -61,9 +63,6 @@ urlpatterns = [
 
     #---------------------------------- CONTACT-------------
     path("/contact/createContact",createContact),
-
-  
-
     
 ]
 

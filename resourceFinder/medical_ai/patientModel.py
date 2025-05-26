@@ -21,7 +21,7 @@ class Patient(Document):
     ongoing_treatments = ListField(StringField())
     emergency_contact = StringField()
 
-    # ✅ Correct way to reference Treatment to avoid circular import
+    #  Correct way to reference Treatment to avoid circular import
     treatments = ListField(ReferenceField('Treatment'))
 
     def get_full_name(self):
