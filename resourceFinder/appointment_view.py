@@ -13,6 +13,7 @@ from mongoengine.errors import DoesNotExist
 from resourceFinder.utility.email_sender import send_email
 from rest_framework.decorators import api_view
 from django.utils.dateformat import format as date_format
+from resourceFinder.medical_ai.doctorModel import Doctor
 
 @csrf_exempt
 def request_hospital_appointment(request):
@@ -462,31 +463,33 @@ def assign_doctor_to_appointment(request):
 
 
 @api_view(['GET'])
-def get_appointments_by_doctor_email(request, email):
-    try:
-        # Lookup doctor by email
-        doctor = User.objects.get(email__iexact=email, userRole="doctor")
-    except User.DoesNotExist:
+def get_appointments_by_doctor_id(request, doctor_id):
+    # Validate ObjectId
+    if not ObjectId.is_valid(doctor_id):
+        return JsonResponse({"error": "Invalid doctor ID."}, status=400)
+
+    # Confirm the doctor exists
+    if not Doctor.objects(id=ObjectId(doctor_id)).first():
         return JsonResponse({"error": "Doctor not found."}, status=404)
 
-    # Now query appointments assigned to that doctor
-    appointments = Appointment.objects.filter(doctor=doctor).order_by('-date')
+    # Query appointments by doctor ID (not doctor object)
+    appointments = Appointment.objects.filter(doctor=ObjectId(doctor_id)).order_by('-date')
 
     result = []
     for appt in appointments:
         result.append({
             "appointment_id": str(appt.id),
-            "date": str(appt.date),
+            "date": appt.date.strftime("%Y-%m-%d") if appt.date else 'N/A',
             "day": appt.day,
             "start_time": appt.start_time,
             "end_time": appt.end_time,
             "status": appt.status,
-            "created_at": appt.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+            "created_at": appt.created_at.strftime("%Y-%m-%d %H:%M:%S") if appt.created_at else 'N/A',
             "patient": {
-                "name": f"{appt.user.firstname} {appt.user.lastname}",
-                "email": appt.user.email,
-                "phone": getattr(appt.user, 'phone', 'N/A'),
-                "role": appt.user.userRole
+                "name": f"{appt.user.firstname} {appt.user.lastname}" if appt.user else 'N/A',
+                "email": appt.user.email if appt.user else 'N/A',
+                "phone": getattr(appt.user, 'phone', 'N/A') if appt.user else 'N/A',
+                "role": appt.user.userRole if appt.user else 'N/A'
             },
             "hospital": appt.hospital.hospital_name if appt.hospital else 'N/A',
             "prediction_id": str(appt.prediction.id) if appt.prediction else 'N/A'
