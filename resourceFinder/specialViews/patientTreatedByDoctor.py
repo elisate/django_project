@@ -1,16 +1,26 @@
+from bson import ObjectId
 from django.http import JsonResponse
-
 from resourceFinder.medical_ai.treatmentModel import Treatment
 from resourceFinder.medical_ai.patientModel import Patient
-from mongoengine.queryset.visitor import Q
+from resourceFinder.medical_ai.doctorModel import Doctor  # Make sure this is imported if needed
 
 def patients_and_treatments_by_doctor(request, doctor_id):
-    # Step 1: Get all treatments by the doctor
-    treatments = Treatment.objects(doctor=doctor_id)
+    try:
+        doctor_obj_id = ObjectId(doctor_id)
+    except:
+        return JsonResponse({"error": "Invalid doctor ID"}, status=400)
 
-    # Step 2: Group treatments by patient
+    # Fetch treatments associated with the actual doctor ID (not user ID)
+    treatments = Treatment.objects(doctor=doctor_obj_id)
+
+    if not treatments:
+        return JsonResponse({"patients": [], "message": "No treatments found for this doctor."})
+
     patient_map = {}
     for treatment in treatments:
+        if not treatment.patient:
+            continue  # skip if patient is None
+
         patient_id = str(treatment.patient.id)
         if patient_id not in patient_map:
             patient_map[patient_id] = {
@@ -19,15 +29,17 @@ def patients_and_treatments_by_doctor(request, doctor_id):
             }
         patient_map[patient_id]["treatments"].append(treatment)
 
-    # Step 3: Build response
     response_data = []
     for entry in patient_map.values():
         patient = entry["patient"]
         treatment_list = entry["treatments"]
 
+        user = patient.user
+        full_name = f"{user.firstname} {user.lastname}" if user else "Unknown"
+
         patient_data = {
             "id": str(patient.id),
-            "full_name": patient.get_full_name(),
+            "full_name": full_name,
             "age": patient.age,
             "gender": patient.gender,
             "phone": patient.phone,
@@ -46,7 +58,7 @@ def patients_and_treatments_by_doctor(request, doctor_id):
         for treatment in treatment_list:
             patient_data["treatments"].append({
                 "id": str(treatment.id),
-                "appointment_id": str(treatment.appointment.id),
+                "appointment_id": str(treatment.appointment.id) if treatment.appointment else None,
                 "symptoms": treatment.symptoms,
                 "diagnosis": treatment.diagnosis,
                 "prescription": treatment.prescription,
