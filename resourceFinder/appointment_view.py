@@ -468,12 +468,16 @@ def get_appointments_by_doctor_id(request, doctor_id):
     if not ObjectId.is_valid(doctor_id):
         return JsonResponse({"error": "Invalid doctor ID."}, status=400)
 
-    # Confirm the doctor exists
-    if not Doctor.objects(id=ObjectId(doctor_id)).first():
+    # Get the Doctor document
+    doctor_doc = Doctor.objects(id=ObjectId(doctor_id)).first()
+    if not doctor_doc:
         return JsonResponse({"error": "Doctor not found."}, status=404)
 
-    # Query appointments by doctor ID (not doctor object)
-    appointments = Appointment.objects.filter(doctor=ObjectId(doctor_id)).order_by('-date')
+    # Get the actual User instance used in Appointment.doctor
+    doctor_user = doctor_doc.user
+
+    # Now use the User ID to find appointments
+    appointments = Appointment.objects.filter(doctor=doctor_user).order_by('-date')
 
     result = []
     for appt in appointments:
