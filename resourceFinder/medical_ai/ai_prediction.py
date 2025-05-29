@@ -8,7 +8,7 @@ import os
 
 
 from django.conf import settings
-import joblib
+
 
 model_path = os.path.join(settings.BASE_DIR, 'resourceFinder', 'medical_ai', 'diagnosis_model.pkl')
 model = joblib.load(model_path)
