@@ -105,14 +105,20 @@ JWT_ACCESS_TOKEN_LIFETIME = timedelta(minutes=50)
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-DB_USER = os.getenv("DB_USER")
-DB_PASS = os.getenv("DB_PASS")
-DB_NAME = os.getenv("DB_NAME")
-DB_URI = os.getenv("DB_URI")
+
+# Get DB values from environment
+db_user = os.getenv("DB_USER")
+db_pass = os.getenv("DB_PASS")
+db_name = os.getenv("DB_NAME")
+db_uri =  os.getenv("DB_URI")
+
+# Construct MongoDB URI
+
+
 # Connect Django to MongoDB
 connect(
-    db=DB_NAME,
-    host=DB_URI
+    db=db_name,
+    host=db_uri
 )
 
 # DATABASES = {
