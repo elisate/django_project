@@ -29,14 +29,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False  # Set to False in production
+DEBUG = True
+ALLOWED_HOSTS = ['*']  # For testing only
 
-ALLOWED_HOSTS = [
-    'localhost',
-    '127.0.0.1',
-    'django-project-57he.onrender.com',  # no https://
-    '.onrender.com',  # wildcard for subdomains
-]
 
 
 CORS_ALLOW_ALL_ORIGINS = True  # Keep if needed for APIs
