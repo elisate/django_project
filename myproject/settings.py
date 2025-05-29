@@ -34,9 +34,10 @@ DEBUG = False  # Set to False in production
 ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
-    'https://django-project-57he.onrender.com',  # Add your Render domain here
-    '.onrender.com',  # optional wildcard
+    'django-project-57he.onrender.com',  # no https://
+    '.onrender.com',  # wildcard for subdomains
 ]
+
 
 CORS_ALLOW_ALL_ORIGINS = True  # Keep if needed for APIs
 
