@@ -28,10 +28,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = False  # Set to False in production
 
-ALLOWED_HOSTS = []
-CORS_ALLOW_ALL_ORIGINS = True
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    'django-project-46q2.onrender.com',  # Add your Render domain here
+]
+
+CORS_ALLOW_ALL_ORIGINS = True  # Keep if needed for APIs
+
 
 
 
@@ -121,7 +128,7 @@ connect(
     host=db_uri
 )
 
-ALLOWED_HOSTS = ['*']
+
 
 
 # DATABASES = {
