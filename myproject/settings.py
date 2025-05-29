@@ -30,7 +30,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: don't run with debug turned on in production!
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-ALLOWED_HOSTS = ['*']  # For testing only
+ALLOWED_HOSTS = ['https://django-project-57he.onrender.com']  # For testing only
 
 
 
