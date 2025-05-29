@@ -121,6 +121,9 @@ connect(
     host=db_uri
 )
 
+ALLOWED_HOSTS = ['*']
+
+
 # DATABASES = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.sqlite3',
