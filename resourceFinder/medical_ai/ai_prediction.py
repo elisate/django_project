@@ -4,7 +4,14 @@ import pandas as pd
 import os
 
 # Load trained model
-model = joblib.load(r"C:\Users\user\Desktop\FINAL YEAR PRO CODE\finalp\resourceFinder\medical_ai\diagnosis_model.pkl")
+# model = joblib.load(r"C:\Users\user\Desktop\FINAL YEAR PRO CODE\finalp\resourceFinder\medical_ai\diagnosis_model.pkl")
+
+
+from django.conf import settings
+import joblib
+
+model_path = os.path.join(settings.BASE_DIR, 'resourceFinder', 'medical_ai', 'diagnosis_model.pkl')
+model = joblib.load(model_path)
 
 def predict_diagnosis(user, symptoms, location):
     """
